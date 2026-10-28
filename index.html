@@ -6095,7 +6095,20 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   const MARINE = "https://marine-api.open-meteo.com/v1/marine";
   const AV = ["wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "pressure_msl", "precipitation", "cloud_cover", "visibility", "temperature_2m"];
   const MV = ["wave_height", "wave_direction", "wave_period", "swell_wave_height", "swell_wave_direction", "swell_wave_period", "ocean_current_velocity", "ocean_current_direction", "sea_surface_temperature"];
-  const BATCH = 100, PAR = 3;
+  const BATCH = 100, PAR = 2, PER_MIN = 450;   // stay below Open-Meteo's free limit of 600 location-calls per minute
+  const sent = [];                                // [time, calls] of recent requests (shared by weather + marine)
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function slot(n, wait) {                  // wait until n more calls fit into the rolling minute
+    for (;;) {
+      const now = Date.now();
+      while (sent.length && now - sent[0][0] > 60000) sent.shift();
+      const used = sent.reduce((a, x) => a + x[1], 0);
+      if (used + n <= PER_MIN || !sent.length) { sent.push([now, n]); return; }
+      const ms = 60000 - (now - sent[0][0]) + 250;
+      wait(Math.ceil(ms / 1000));
+      await sleep(Math.min(ms, 1000));
+    }
+  }
 
   let st = load();
   function load() {
@@ -6142,10 +6155,15 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         const part = pts.slice(a, a + BATCH);
         const q = `latitude=${part.map((p) => p[0].toFixed(3)).join(",")}&longitude=${part.map((p) => (((p[1] + 540) % 360) - 180).toFixed(3)).join(",")}` +
           `&hourly=${vars.join(",")}&forecast_hours=${st.hours + 1}&timeformat=unixtime&timezone=GMT${extra}`;
+        const w = Math.max(1, Math.min(st.hours, 384) / 336) * (vars.length > 10 ? vars.length / 10 : 1);
         let res, tries = 0;
         for (;;) {
+          await slot(Math.ceil(part.length * w), (sec) => onProg(done / pts.length, `waiting ${sec} s for the Open-Meteo per-minute limit`));
           try { res = await fetch(`${url}?${q}`); } catch (e) { throw new Error("No connection to Open-Meteo (internet needed)"); }
-          if (res.status === 429 && tries++ < 3) { await new Promise((r) => setTimeout(r, 15000)); continue; }
+          if (res.status === 429 && tries++ < 6) {
+            for (let k = 61; k > 0; k--) { onProg(done / pts.length, `Open-Meteo limit reached – retrying in ${k} s`); await sleep(1000); }
+            continue;
+          }
           break;
         }
         if (!res.ok) { let m = res.statusText; try { const j = await res.json(); m = j.reason || m; } catch (e) { /* ignore */ } throw new Error(`Open-Meteo: ${m} (${res.status})`); }
@@ -6165,9 +6183,9 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (!st.atm && !st.marine) throw new Error("Tick atmosphere and / or marine data");
     if (G.nx * G.ny > 3000) throw new Error(`${G.nx * G.ny} grid points – too many. Use a coarser grid or a smaller area (max 3000).`);
     const raw = { G, model: st.model, hours: st.hours, step: st.step, fetched: Date.now() };
-    const prog = (k, f) => A.loading(true, `Downloading ${k} from Open-Meteo… ${Math.round(f * 100)}%`);
-    if (st.atm) raw.atm = await fetchBatched(ATM[st.model].url, AV, G, "&wind_speed_unit=kn", (f) => prog("weather", f));
-    if (st.marine) raw.mar = await fetchBatched(MARINE, MV, G, "", (f) => prog("marine data", f));
+    const prog = (k, f, msg) => A.loading(true, `Downloading ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""));
+    if (st.atm) raw.atm = await fetchBatched(ATM[st.model].url, AV, G, "&wind_speed_unit=kn", (f, m) => prog("weather", f, m));
+    if (st.marine) raw.mar = await fetchBatched(MARINE, MV, G, "", (f, m) => prog("marine data", f, m));
     return raw;
   }
 
@@ -6272,7 +6290,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     save();
     try {
       const G = grid(), c = calls(G);
-      $("omInfo").innerHTML = `${G.ny} × ${G.nx} = <b>${G.nx * G.ny}</b> points at ${G.res}° · area ${A.fmtLat(G.lat_n)} – ${A.fmtLat(G.lat_s)}, ${A.fmtLon(G.lon_w)} – ${A.fmtLon(G.lon_e)} · about <b>${Math.round(c)}</b> of the free 5 000 calls per hour` +
+      $("omInfo").innerHTML = `${G.ny} × ${G.nx} = <b>${G.nx * G.ny}</b> points at ${G.res}° · area ${A.fmtLat(G.lat_n)} – ${A.fmtLat(G.lat_s)}, ${A.fmtLon(G.lon_w)} – ${A.fmtLon(G.lon_e)} · about <b>${Math.round(c)}</b> of the free 5 000 calls per hour` + (c > PER_MIN ? ` · takes about <b>${Math.ceil(c / PER_MIN)} min</b> (Open-Meteo allows 600 per minute)` : "") +
         (G.nx * G.ny > 3000 ? ` <span class="warn-txt">– too many points: coarser grid or smaller area</span>` : c > 4000 ? ` <span class="warn-txt">– close to the hourly limit</span>` : "");
       $("omGo").disabled = G.nx * G.ny > 3000 || (!st.atm && !st.marine);
       if (rect) rect.remove();
