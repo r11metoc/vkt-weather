@@ -1152,6 +1152,26 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
 .omp-bar span { position: relative; display: block; text-align: center; font: 700 11.5px/18px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
 .omp-msg { margin-top: 6px; color: var(--fg-2); font-size: 12.5px; }
 .omp-last { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12.5px; }
+/* map overlays (bottom of the panel, collapsible) */
+.ov-head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; background: none; border: none; cursor: pointer; color: var(--fg-2); }
+.ov-head h3 { margin: 2px 0 8px; }
+.ov-chev { transition: transform .15s; margin-bottom: 6px; }
+.ov-sec.collapsed .ov-chev { transform: rotate(-90deg); }
+.ov-sec.collapsed .ov-body { display: none; }
+.ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.ov-chip { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); font-size: 12.5px; cursor: pointer; user-select: none; min-width: 0; }
+.ov-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-chip input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; flex: none; }
+.ov-chip:has(input:checked) { border-color: rgba(79,195,247,.55); background: #17405f; }
+.ov-chip.disabled { opacity: .45; }
+.ov-chip[hidden] { display: none; }
+.ov-wide { grid-column: span 2; }
+.ov-range { display: grid; grid-template-columns: 62px 1fr 38px; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--fg-2); }
+.ov-range input { accent-color: var(--accent); width: 100%; margin: 0; }
+.ov-range b { font: 600 11.5px var(--mono); color: var(--fg); text-align: right; }
+.touch-ui .ov-chip { padding: 9px 10px; font-size: 13.5px; }
+.lg-line { align-items: flex-start !important; font-family: var(--font) !important; line-height: 1.35; }
+.lg-dots { flex: none; width: 34px; height: 12px; margin-top: 3px; background-image: radial-gradient(circle, var(--c) 2.1px, transparent 2.6px); background-size: 8px 12px; background-repeat: repeat-x; background-position: 0 center; }
 /* mini legend on the map (phones; tablets when the panel is closed) */
 .mini-legend { display: none; position: absolute; top: 8px; left: 60px; right: 8px; z-index: 800; padding: 5px 8px 3px; cursor: pointer;
   background: rgba(11,23,36,.85); border: 1px solid var(--border); border-radius: 9px; }
@@ -1380,19 +1400,6 @@ body { height: 100%; height: 100dvh; }
       <div id="fieldList" class="field-list"><div class="field-group">Load a GRIB file to begin</div></div>
     </section>
     <section>
-      <h3>Overlays</h3>
-      <label class="tog"><input type="checkbox" id="ovVectors" checked> <span id="ovVectorsLbl">Wind barbs</span></label>
-      <label class="tog"><input type="checkbox" id="ovIsobars" checked> Isobars (MSLP)</label>
-      <label class="tog"><input type="checkbox" id="ovContours"> Contours of parameter</label>
-      <label class="tog"><input type="checkbox" id="ovLand" checked> Land mask</label>
-      <label class="tog"><input type="checkbox" id="ovPorts" checked> Ports</label>
-      <label class="tog"><input type="checkbox" id="ovLabels" checked> Labels of areas / plans</label>
-      <label class="tog"><input type="checkbox" id="ovGrid" checked> Lat / Lon grid</label>
-      <label class="tog"><input type="checkbox" id="ovSmooth" checked> Smooth shading</label>
-      <label class="range">Shading opacity <input type="range" id="opacity" min="0.2" max="1" step="0.05" value="0.85"></label>
-      <label class="range">Barb / arrow density <input type="range" id="density" min="24" max="90" step="2" value="42"></label>
-    </section>
-    <section>
       <div class="sec-head"><h3 id="legendTitle">Legend</h3><button class="btn-sm" id="btnEditScale" title="Change colour scale values / colours">Edit colours</button></div>
       <div class="custom-badge" id="legendCustom" hidden>Custom colour scale</div>
       <div id="legend" class="legend"></div>
@@ -1413,6 +1420,23 @@ body { height: 100%; height: 100dvh; }
         <button class="btn-sm" id="btnToggleItems" title="Show or hide all areas and measurements">Show / hide all</button>
         <button class="btn-sm" id="btnClearItems" title="Remove all areas and measurements">Clear all</button>
         <input type="file" id="importInput" accept=".json" hidden>
+      </div>
+    </section>
+    <section class="ov-sec" id="ovSec">
+      <button class="ov-head" id="ovHead" type="button" aria-expanded="true"><h3>Map overlays</h3><svg class="ov-chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="ov-body">
+        <div class="ov-grid">
+          <label class="ov-chip ov-wide"><input type="checkbox" id="ovVectors" checked> <span id="ovVectorsLbl">Wind barbs</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovIsobars" checked> <span>Isobars</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovContours"> <span>Contours</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovLand" checked> <span>Land mask</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovPorts" checked> <span>Ports</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovLabels" checked> <span>Area labels</span></label>
+          <label class="ov-chip"><input type="checkbox" id="ovGrid" checked> <span>Lat / Lon grid</span></label>
+          <label class="ov-chip ov-wide"><input type="checkbox" id="ovSmooth" checked> <span>Smooth shading</span></label>
+        </div>
+        <label class="ov-range"><span>Opacity</span><input type="range" id="opacity" min="0.2" max="1" step="0.05" value="0.85"><b id="opacityVal">85%</b></label>
+        <label class="ov-range"><span>Density</span><input type="range" id="density" min="24" max="90" step="2" value="42"><b id="densityVal">42</b></label>
       </div>
     </section>
     <section class="hint">
@@ -2921,7 +2945,7 @@ body { height: 100%; height: 100dvh; }
   }
   function updateStats() {
     const arr = scalarArray(S.grid), fm = fieldMeta();
-    if (!arr || !fm) { $("fieldStats").textContent = ""; return; }
+    if (!arr || !fm || fm.limits || fm.noShade) { $("fieldStats").textContent = ""; return; }   // no min / mean / max for yes-no products
     let mn = Infinity, mx = -Infinity, sum = 0, n = 0;
     for (let i = 0; i < arr.length; i++) { const v = arr[i]; if (isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; sum += v; n++; } }
     const d = fm.units === "m" || fm.id === "current" ? 2 : 1;
@@ -2967,7 +2991,7 @@ body { height: 100%; height: 100dvh; }
     applyOvCat(fm);
     buildLUT(scaleOf(fm));
     document.querySelectorAll(".field-btn").forEach((b) => b.classList.toggle("active", b.dataset.id === id));
-    $("ovVectorsLbl").textContent = (fm.id === "wind" || fm.barbs) ? "Wind barbs" : fm.kind === "vector" ? "Current arrows" : fm.comps.dir ? "Wave direction arrows" : fm.ss ? "Sea-state numbers" : fm.limits ? "Wind values (direction / speed kt)" : "Vectors (n/a)";
+    $("ovVectorsLbl").textContent = (fm.id === "wind" || fm.barbs) ? "Wind barbs" : fm.kind === "vector" ? "Current arrows" : fm.comps.dir ? "Wave direction arrows" : fm.ss ? "Sea-state numbers" : fm.limits ? "Wind values (ddd / kt)" : "Arrows / values (n/a)";
     $("ovVectors").parentElement.hidden = isWave(fm);   // wave arrows are part of the parameter
     $("ovContours").parentElement.classList.toggle("disabled", fm.kind === "direction" || !!fm.ss);
     $("ovVectors").parentElement.classList.toggle("disabled", !(fm.kind === "vector" || fm.comps.dir || fm.ss || fm.limits) || fm.kind === "direction" || isWave(fm));
@@ -2980,6 +3004,12 @@ body { height: 100%; height: 100dvh; }
   }
   function buildLegend2(fm) {
     $("legendTitle").textContent = titleU(fm);
+    if (fm.noShade) {                                   // line-only product: show the line style
+      $("legendCustom").hidden = true; $("btnEditScale").hidden = true;
+      const box = $("legend"); box.classList.remove("compact");
+      box.innerHTML = `<div class="row lg-line"><span class="lg-dots" style="--c:${fm.contourColor || "#d32f2f"}"></span><span>${esc((fm.scale.names || [""])[0])}</span></div>`;
+      return;
+    }
     const box = $("legend"); box.innerHTML = "";
     $("btnEditScale").hidden = fm.kind === "direction" || !!fm.ss || !!fm.noEdit;
     if (fm.kind === "direction") {
@@ -3942,6 +3972,13 @@ body { height: 100%; height: 100dvh; }
   $("ovLabels").addEventListener("change", () => map.getContainer().classList.toggle("no-labels", !$("ovLabels").checked));
   $("opacity").addEventListener("input", () => fieldLayer.redraw());
   $("density").addEventListener("input", () => vecLayer.redraw());
+  // overlay panel: value read-outs for the sliders, collapsible section (remembered)
+  const ovVals = () => { $("opacityVal").textContent = Math.round(+$("opacity").value * 100) + "%"; $("densityVal").textContent = $("density").value; };
+  ["opacity", "density"].forEach((id) => $(id).addEventListener("input", ovVals)); ovVals();
+  const OVC = "vkt.ovCollapsed";
+  const setOvc = (c) => { $("ovSec").classList.toggle("collapsed", c); $("ovHead").setAttribute("aria-expanded", String(!c)); try { localStorage.setItem(OVC, c ? "1" : ""); } catch (e) { /* ignore */ } };
+  try { if (localStorage.getItem(OVC)) setOvc(true); } catch (e) { /* ignore */ }
+  $("ovHead").onclick = () => setOvc(!$("ovSec").classList.contains("collapsed"));
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "SELECT" || (e.target.tagName === "INPUT" && !["range", "checkbox"].includes(e.target.type))) return;
     if (e.key === "ArrowRight") { e.preventDefault(); togglePlay(false); setT(S.tIdx + 1); }
@@ -6234,7 +6271,7 @@ body { height: 100%; height: 100dvh; }
       models: {
         GFS: { res: [0.25, 0.5, 1, 2], def: 0.5, params: P_GFS, on: ALL(P_GFS, ["APCP"]), max: 384, note: "NOAA GFS · 3-hourly to 192 h" },
         ICON: { res: [0.125, 0.25, 0.5, 1], def: 0.25, params: P_ICON, on: P_ICON, max: 180, note: "DWD ICON · 3-hourly to 180 h" },
-        ECMWF: { res: [0.4, 0.8, 1.2], def: 0.4, params: P_EC, on: P_EC, max: 240, note: "ECMWF open data · 0.4° · 3-hourly to 144 h then 6-hourly" },
+        ECMWF: { res: [0.25, 0.4, 0.5, 0.8, 1.2], def: 0.4, params: P_EC, on: P_EC, max: 240, note: "ECMWF open data · Saildocs lists 0.4° (0.25° to test) · 3-hourly to 144 h then 6-hourly" },
         NAVGEM: { res: [1, 2], def: 1, params: P_NAV, on: P_NAV, max: 180, note: "US Navy NAVGEM" },
       },
     },
