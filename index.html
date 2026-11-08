@@ -1112,6 +1112,12 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
 .ops-table td:nth-child(2) { font-weight: 600; }
 .sd-ps .btn-sm { padding: 2px 9px; font-size: 11.5px; }
 
+/* Open-Meteo auto refresh */
+.om-auto { display: inline-flex; align-items: center; gap: 6px; }
+.om-auto select { width: auto; }
+.om-badge { margin-left: 6px; padding: 1px 6px; border-radius: 9px; background: #7fdbca; color: #0b1a2a; font-size: 11px; font-weight: 600; }
+#omAutoTxt { margin-top: 4px; }
+
 </style>
 <meta name="theme-color" content="#0f2740">
 <script>
@@ -1148,7 +1154,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   </button>
   <button class="btn" id="btnOpenMeteo" title="Download the latest forecast directly from Open-Meteo (internet needed)">
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 11v6m-2.5-2.5L12 17l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span class="lbl">Download</span>
+    <span class="lbl">Download</span><span class="om-badge" id="omBadge" hidden></span>
   </button>
   <button class="btn" id="btnSaildocs" title="Request GRIB files from Saildocs by e-mail (GFS, ICON, ECMWF, wave model, RTOFS currents)">
     <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -1334,9 +1340,10 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       <div class="sd-row">
         <label>Forecast to <select id="omHours"><option value="24">24 h</option><option value="48">48 h</option><option value="72">72 h</option><option value="96">96 h</option><option value="120">120 h</option><option value="168">7 days</option><option value="240">10 days</option><option value="384">16 days</option></select></label>
         <label>Every <select id="omStep"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option></select></label>
-        <label class="tog"><input type="checkbox" id="omAuto"> Refresh automatically every 3 h while open</label>
+        <span class="om-auto"><label class="tog"><input type="checkbox" id="omAuto"> Auto-refresh every</label> <select id="omEvery"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option></select></span>
       </div>
       <div class="muted sd-size" id="omInfo"></div>
+      <div class="muted" id="omAutoTxt" hidden></div>
       <div class="cl-actions"><button class="btn primary" id="omGo">Download now</button><button class="btn" id="omLast">Open last download</button><span class="muted" id="omLastTxt"></span></div>
       <div class="muted sd-help">Data: <b>Open-Meteo.com</b> (CC BY 4.0) – free for non-commercial use, about 5 000 point-requests per hour. Weather: wind, gust, pressure, rain, cloud, visibility, temperature. Marine: significant wave and swell height / direction / period, currents, sea temperature (empty over land). Needs normal internet; on ship / satellite e-mail use <b>Saildocs</b> instead. The last download is kept in this browser and can be reopened offline.</div>
     </div>
@@ -6113,7 +6120,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   let st = load();
   function load() {
     let o = {}; try { o = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { /* ignore */ }
-    return Object.assign({ area: "view", n: "", s: "", w: "", e: "", res: 1, hours: 120, step: 3, model: "gfs", atm: true, marine: true, auto: false }, o);
+    return Object.assign({ area: "view", n: "", s: "", w: "", e: "", res: 1, hours: 120, step: 3, model: "gfs", atm: true, marine: true, auto: false, every: 6 }, o);
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* ignore */ } }
 
@@ -6144,7 +6151,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   const calls = (G) => G.nx * G.ny * ((st.atm ? 1 : 0) + (st.marine ? 1 : 0)) * Math.max(1, Math.min(st.hours, 384) / 336);
 
   // ---- download
-  async function fetchBatched(url, vars, G, extra, onProg) {
+  async function fetchBatched(url, vars, G, hours, extra, onProg) {
     const pts = [];
     for (let i = 0; i < G.ny; i++) for (let j = 0; j < G.nx; j++) pts.push([G.lat_n - i * G.res, G.lon_w + j * G.res]);
     const out = new Array(pts.length);
@@ -6154,8 +6161,8 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         const a = next; next += BATCH;
         const part = pts.slice(a, a + BATCH);
         const q = `latitude=${part.map((p) => p[0].toFixed(3)).join(",")}&longitude=${part.map((p) => (((p[1] + 540) % 360) - 180).toFixed(3)).join(",")}` +
-          `&hourly=${vars.join(",")}&forecast_hours=${st.hours + 1}&timeformat=unixtime&timezone=GMT${extra}`;
-        const w = Math.max(1, Math.min(st.hours, 384) / 336) * (vars.length > 10 ? vars.length / 10 : 1);
+          `&hourly=${vars.join(",")}&forecast_hours=${hours + 1}&timeformat=unixtime&timezone=GMT${extra}`;
+        const w = Math.max(1, Math.min(hours, 384) / 336) * (vars.length > 10 ? vars.length / 10 : 1);
         let res, tries = 0;
         for (;;) {
           await slot(Math.ceil(part.length * w), (sec) => onProg(done / pts.length, `waiting ${sec} s for the Open-Meteo per-minute limit`));
@@ -6178,16 +6185,22 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   // unit conversions from the "hourly_units" of the response
   const toKt = (u) => (/kn/.test(u) ? 1 : /km\/h/.test(u) ? 1 / 1.852 : /m\/s/.test(u) ? 1.943844 : /mp\/?h/.test(u) ? 0.868976 : 1);
 
-  async function download() {
-    const G = grid();
-    if (!st.atm && !st.marine) throw new Error("Tick atmosphere and / or marine data");
+  // o = settings of an earlier download (automatic refresh: same area, model and length) – otherwise the dialog settings
+  async function download(o, quiet) {
+    o = o || { G: grid(), model: st.model, hours: st.hours, step: st.step, atm: st.atm, marine: st.marine };
+    const G = o.G, model = ATM[o.model] ? o.model : "gfs";
+    if (!o.atm && !o.marine) throw new Error("Tick atmosphere and / or marine data");
     if (G.nx * G.ny > 3000) throw new Error(`${G.nx * G.ny} grid points – too many. Use a coarser grid or a smaller area (max 3000).`);
-    const raw = { G, model: st.model, hours: st.hours, step: st.step, fetched: Date.now() };
-    const prog = (k, f, msg) => A.loading(true, `Downloading ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""));
-    if (st.atm) raw.atm = await fetchBatched(ATM[st.model].url, AV, G, "&wind_speed_unit=kn", (f, m) => prog("weather", f, m));
-    if (st.marine) raw.mar = await fetchBatched(MARINE, MV, G, "", (f, m) => prog("marine data", f, m));
+    const raw = { G, model, hours: o.hours, step: o.step, fetched: Date.now() };
+    const prog = quiet
+      ? (k, f, msg) => { badge(Math.round(f * 100) + "%"); $("btnOpenMeteo").title = `Refreshing ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""); }
+      : (k, f, msg) => A.loading(true, `Downloading ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""));
+    if (o.atm) raw.atm = await fetchBatched(ATM[model].url, AV, G, o.hours, "&wind_speed_unit=kn", (f, m) => prog("weather", f, m));
+    if (o.marine) raw.mar = await fetchBatched(MARINE, MV, G, o.hours, "", (f, m) => prog("marine data", f, m));
     return raw;
   }
+  const BTN_TITLE = "Download the latest forecast directly from Open-Meteo (internet needed)";
+  function badge(t) { const b = $("omBadge"); if (!b) return; b.hidden = !t; b.textContent = t || ""; if (!t) $("btnOpenMeteo").title = BTN_TITLE; }
 
   // ---- assemble a GRIB-like dataset
   function assemble(raw) {
@@ -6281,7 +6294,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     sel.value = st.area; $("omCustom").hidden = st.area !== "custom";
     ["n", "s", "w", "e"].forEach((k) => ($("om" + k.toUpperCase()).value = st[k]));
     $("omModel").value = st.model; $("omRes").value = String(st.res); $("omHours").value = String(st.hours); $("omStep").value = String(st.step);
-    $("omAtm").checked = st.atm; $("omMar").checked = st.marine; $("omAuto").checked = st.auto;
+    $("omAtm").checked = st.atm; $("omMar").checked = st.marine; $("omAuto").checked = st.auto; $("omEvery").value = String(st.every);
     update();
     lastRaw().then((r) => { $("omLast").disabled = !r; $("omLastTxt").textContent = r ? `Last download: ${A.fmtZ(new Date(r.fetched))}` : ""; });
   }
@@ -6293,6 +6306,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       $("omInfo").innerHTML = `${G.ny} × ${G.nx} = <b>${G.nx * G.ny}</b> points at ${G.res}° · area ${A.fmtLat(G.lat_n)} – ${A.fmtLat(G.lat_s)}, ${A.fmtLon(G.lon_w)} – ${A.fmtLon(G.lon_e)} · about <b>${Math.round(c)}</b> of the free 5 000 calls per hour` + (c > PER_MIN ? ` · takes about <b>${Math.ceil(c / PER_MIN)} min</b> (Open-Meteo allows 600 per minute)` : "") +
         (G.nx * G.ny > 3000 ? ` <span class="warn-txt">– too many points: coarser grid or smaller area</span>` : c > 4000 ? ` <span class="warn-txt">– close to the hourly limit</span>` : "");
       $("omGo").disabled = G.nx * G.ny > 3000 || (!st.atm && !st.marine);
+      autoInfo(c);
       if (rect) rect.remove();
       rect = L.rectangle([[G.lat_s, G.lon_w], [G.lat_n, G.lon_e]], { color: "#7fdbca", weight: 2, dashArray: "6 4", fill: false, interactive: false }).addTo(A.map);
     } catch (e) { $("omInfo").textContent = e.message; $("omGo").disabled = true; }
@@ -6311,25 +6325,73 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   $("omStep").onchange = () => { st.step = +$("omStep").value; update(); };
   $("omAtm").onchange = () => { st.atm = $("omAtm").checked; update(); };
   $("omMar").onchange = () => { st.marine = $("omMar").checked; update(); };
-  $("omAuto").onchange = () => { st.auto = $("omAuto").checked; save(); schedule(); };
+  $("omAuto").onchange = () => { st.auto = $("omAuto").checked; update(); schedule(); };
+  $("omEvery").onchange = () => { st.every = +$("omEvery").value; update(); schedule(); };
   A.map.on("moveend", () => { if (!$("omModal").hidden && st.area === "view") update(); });
-  async function run(quiet) {
+  let busy = false;
+  async function run(quiet, o) {
+    if (busy) return false;
+    busy = true;
     let raw;
-    try { raw = await download(); }
-    catch (e) { console.error(e); A.loading(false); if (!quiet) A.toast(A.esc(e.message), true, 7000); return false; }
-    try { show(raw, quiet); await remember(raw); } catch (e) { console.error(e); A.toast(A.esc(e.message), true, 7000); }
-    finally { A.loading(false); }
+    try { raw = await download(o, quiet); }
+    catch (e) { console.error(e); A.loading(false); badge(""); busy = false; if (!quiet) A.toast(A.esc(e.message), true, 7000); else lastErr = e.message; return false; }
+    try {
+      if (!quiet || stillOm()) show(raw, true);
+      if (!quiet) show.toast(raw);
+      else if (stillOm()) A.toast(`Forecast refreshed automatically – <b>${A.esc(ATM[raw.model].label)}</b>, downloaded ${A.fmtZ(new Date(raw.fetched))}`, false, 5000);
+      await remember(raw); lastErr = ""; lastFetched = raw.fetched;
+    } catch (e) { console.error(e); A.toast(A.esc(e.message), true, 7000); }
+    finally { A.loading(false); badge(""); busy = false; autoInfo(); }
     return true;
   }
+  show.toast = (raw) => { const ds = A.S.ds; if (ds && ds.om) A.toast(`Loaded <b>${A.esc(ds.om.label)}</b> — ${ds.times.length} steps, ${raw.G.nx}×${raw.G.ny} points (${raw.G.res}°)`, false, 4500); };
   $("omGo").onclick = async () => { if (await run(false)) close(); };
   $("omLast").onclick = async () => { const r = await lastRaw(); if (r) { try { show(r); close(); } catch (e) { A.toast(A.esc(e.message), true, 5000); } } };
-  // automatic refresh every 3 h while the page is open (only when the Open-Meteo data is on screen)
+
+  // ---- automatic refresh: same area / model / length as the last download, every N hours while the page is open.
+  // Checked every minute and whenever the page comes back to the screen (phones pause timers in the background).
+  let lastErr = "", lastFetched = 0;
+  const stillOm = () => !A.S.ds || !!A.S.ds.om;          // do not replace a GRIB file or climatology the user opened since
+  const everyMs = () => Math.max(1, +st.every || 6) * 3600e3;
+  function autoInfo(c) {
+    const el = $("omAutoTxt"); if (!el) return;
+    if (!st.auto) { el.hidden = true; return; }
+    let t = "";
+    if (lastFetched) {
+      const due = lastFetched + everyMs();
+      t = due <= Date.now() ? "Next automatic refresh: now (when online)" : `Next automatic refresh about <b>${A.fmtIST ? A.fmtIST(new Date(due)) : A.fmtZ(new Date(due))}</b>`;
+      t += " · same area, model and length as the last download · only while this page is open";
+    } else t = "Automatic refresh starts after the first download";
+    if (c === undefined) { try { c = calls(grid()); } catch (e) { c = 0; } }
+    const perDay = c * 24 / (+st.every || 6);
+    if (perDay > 10000) t += ` <span class="warn-txt">– about ${Math.round(perDay)} calls a day, above the free 10 000: choose a longer interval, coarser grid or smaller area</span>`;
+    if (lastErr) t += ` <span class="warn-txt">– last try failed: ${A.esc(lastErr)}</span>`;
+    el.innerHTML = t; el.hidden = false;
+  }
+  async function check() {
+    if (!st.auto || busy || navigator.onLine === false || !stillOm()) return;
+    const r = await lastRaw();
+    if (!r) return;
+    lastFetched = r.fetched;
+    if (Date.now() - r.fetched < everyMs()) return;
+    if (lastErr && Date.now() - (check.failAt || 0) < 15 * 60e3) return;   // after a failure wait 15 min before trying again
+    const ok = await run(true, { G: r.G, model: r.model, hours: r.hours, step: r.step, atm: !!r.atm, marine: !!r.mar });
+    if (!ok) check.failAt = Date.now(); else { const n = await lastRaw(); if (n) lastFetched = n.fetched; }
+    if (!$("omModal").hidden) autoInfo();
+  }
   let timer = null;
   function schedule() {
     clearInterval(timer); timer = null;
-    if (st.auto) timer = setInterval(() => { if (A.S.ds && A.S.ds.om && navigator.onLine !== false) run(true); }, 3 * 3600e3);
+    if (st.auto) { timer = setInterval(check, 60e3); check(); }
+    lastRaw().then((r) => { lastFetched = r ? r.fetched : 0; if (!$("omModal").hidden) autoInfo(); });
   }
-  schedule();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  window.addEventListener("online", () => check());
+  // with automatic refresh on and nothing else opened, show the last download when the page starts
+  setTimeout(async () => {
+    if (st.auto && !A.S.ds) { const r = await lastRaw(); if (r && !A.S.ds) { try { show(r, true); } catch (e) { console.warn(e); } } }
+    schedule();
+  }, 2500);
   window.VKTOpenMeteo = { assemble, grid: () => grid(), download, show };
 })();
 </script>
