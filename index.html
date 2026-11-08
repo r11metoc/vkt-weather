@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VKT Weather">
 <title>VKT Weather Viewer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2740'/%3E%3Cpath d='M14 40c6-6 12-6 18 0s12 6 18 0' fill='none' stroke='%234fc3f7' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M20 28l16-8m0 0l-2 6m2-6l-6-1' fill='none' stroke='%23ffd166' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -1118,6 +1122,192 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
 .om-badge { margin-left: 6px; padding: 1px 6px; border-radius: 9px; background: #7fdbca; color: #0b1a2a; font-size: 11px; font-weight: 600; }
 #omAutoTxt { margin-top: 4px; }
 
+
+/* sustained wind */
+#susModal label.tog { flex-direction: row; align-items: center; color: var(--fg); font-size: 14px; }
+.su-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
+.su-num { width: 90px; }
+.su-start { flex: 1; min-width: 280px; }
+.su-pos { display: flex; gap: 6px; }
+.su-pos input { flex: 1; min-width: 0; }
+.su-sum { margin: 10px 0 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.su-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.su-note { font-size: 12px; margin-top: 2px; }
+.ok-txt { color: var(--ok); font-weight: 600; }
+.su-table td, .su-table th { white-space: nowrap; }
+.su-table tr.bad td { background: rgba(239,68,68,.16); }
+.su-card .tbl-wrap { max-height: 360px; overflow: auto; }
+.sus-chip { position: absolute; left: 50%; transform: translateX(-50%); bottom: 74px; z-index: 810; display: flex; align-items: center; gap: 8px;
+  background: rgba(11,23,36,.92); border: 1px solid #38bdf8; border-radius: 20px; padding: 4px 6px 4px 14px; font-size: 12.5px; white-space: nowrap; max-width: calc(100% - 20px); }
+.sus-chip[hidden] { display: none; }
+.sus-chip .btn-sm { padding: 3px 9px; }
+/* Open-Meteo download progress */
+.om-prog { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 2100; width: min(520px, calc(100% - 16px));
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px; box-shadow: 0 12px 40px rgba(0,0,0,.5); font-size: 13px; }
+.om-prog[hidden] { display: none; }
+.omp-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.omp-step { color: var(--fg-2); font-size: 12.5px; margin-bottom: 8px; }
+.omp-bar { position: relative; height: 18px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+.omp-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #2b7bb9, var(--accent)); transition: width .4s; }
+.omp-bar span { position: relative; display: block; text-align: center; font: 700 11.5px/18px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+.omp-msg { margin-top: 6px; color: var(--fg-2); font-size: 12.5px; }
+.omp-last { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12.5px; }
+/* mini legend on the map (phones; tablets when the panel is closed) */
+.mini-legend { display: none; position: absolute; top: 8px; left: 60px; right: 8px; z-index: 800; padding: 5px 8px 3px; cursor: pointer;
+  background: rgba(11,23,36,.85); border: 1px solid var(--border); border-radius: 9px; }
+.mini-legend[hidden], body.measuring .mini-legend, body.popup-open .mini-legend, .touch-ui.measuring .readout { display: none !important; }
+.touch-ui .map-wrap:has(.empty:not([hidden])) .tool-bar, .touch-ui .map-wrap:has(.empty:not([hidden])) .readout { display: none; }
+.touch-ui .leaflet-popup-content { max-width: calc(100vw - 60px); }
+.ml-t { font-size: 11px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.ml-bar { display: flex; height: 9px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(0,0,0,.3); }
+.ml-bar i { flex: 1; }
+.ml-ticks { position: relative; height: 13px; font-size: 9.5px; font-family: var(--mono); color: var(--fg-2); }
+.ml-ticks span { position: absolute; top: 1px; transform: translateX(-50%); white-space: nowrap; }
+.ml-ticks span:first-child { transform: none; }
+.touch-ui .panel.hidden ~ .map-wrap .mini-legend { display: block; right: auto; width: min(460px, calc(100% - 130px)); }
+.touch-ui .panel.hidden ~ .map-wrap .mini-legend[hidden] { display: none; }
+@media (max-height: 500px) and (pointer: coarse) {
+  .touch-ui .tool-bar button { width: 34px !important; height: 32px !important; }
+  .timebar { min-height: 50px !important; }
+  .timebar .icon-btn { width: 36px !important; height: 36px !important; }
+  .readout { left: 54px !important; }
+  .mini-legend { right: auto !important; width: 46%; }
+}
+
+/* =================================================================== phones & touch screens
+   PC layout unchanged. .touch-ui = finger input (any size); max-width 760px = phone layout. */
+.mob-only, .touch-only { display: none; }
+.ro-fc, .ro-x { display: none; }
+.mb-acts { display: none; }
+.mob-scrim, .mob-more, .mini-legend { display: none; }
+body { height: 100%; height: 100dvh; }
+
+.touch-ui .pc-only { display: none; }
+.touch-ui .touch-only { display: inline; }
+.touch-ui .leaflet-control-zoom { display: none; }
+.touch-ui .readout { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
+.touch-ui .readout.tapped .ro-fc { display: inline-flex; }
+.touch-ui .readout.tapped .ro-x { display: inline-grid; }
+.touch-ui .readout .ro-fc[hidden] { display: none; }
+.ro-fc { align-items: center; height: 30px; padding: 0 12px; border-radius: 7px; border: none; background: var(--accent); color: #062033; font-weight: 700; font-family: var(--font); font-size: 13px; cursor: pointer; }
+.ro-x { place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--fg-2); font-size: 17px; line-height: 1; cursor: pointer; }
+.touch-ui .mb-acts { display: flex; gap: 6px; margin-top: 8px; }
+.touch-ui .mb-acts .btn-sm { flex: 1; padding: 8px 6px; font-size: 13px; }
+.btn-sm.primary { background: var(--accent); color: #062033; border-color: var(--accent); font-weight: 700; }
+.touch-ui .tool-bar button { width: 42px; height: 42px; }
+.touch-ui .field-btn { padding: 10px 12px; }
+.touch-ui .tog { padding: 6px 0; }
+.touch-ui .tog input { width: 19px; height: 19px; }
+.touch-ui .btn-sm { padding: 7px 12px; font-size: 13px; }
+.touch-ui .empty-card .drop { display: none; }
+.touch-ui input[type=range] { height: 28px; }
+
+@media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
+  .mob-only { display: inline-flex; }
+  /* top bar: icons only, the rest is in "More" */
+  .topbar { height: auto; min-height: 50px; gap: 6px; padding: env(safe-area-inset-top) 8px 0; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .brand-title { font-size: 16px; }
+  .topbar #btnSaildocs, .topbar #btnClimo, .topbar #btnExport, .topbar #btnWatch, .topbar .run-info { display: none !important; }
+  .topbar .btn { height: 38px; padding: 0 10px; }
+  .topbar #btnMore { order: 99; }
+  #watchName { display: none; }
+  #fileSelect { max-width: 96px; }
+  #btnReconnect { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+  /* side panel -> bottom sheet */
+  .panel { position: fixed !important; left: 0; right: 0; bottom: 0; top: auto; width: 100% !important; height: auto !important; max-height: 78dvh; z-index: 2400;
+    border-right: none; border-top: 1px solid var(--border); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.5);
+    padding: 0 0 calc(16px + env(safe-area-inset-bottom)); animation: sheetUp .22s ease-out; overscroll-behavior: contain; }
+  .panel .hint { display: none; }
+  .sheet-head { display: flex !important; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 2; background: var(--panel); padding: 14px 10px 8px 16px; border-bottom: 1px solid var(--border); }
+  .sheet-head b { flex: 1; font-size: 15px; }
+  .sheet-head .grab { position: absolute; left: 50%; top: 5px; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: var(--border); }
+  .mob-scrim { display: block; position: fixed; inset: 0; z-index: 2300; background: rgba(0,0,0,.45); }
+  .mob-scrim[hidden] { display: none; }
+
+  /* "More" menu */
+  .mob-more { display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2600; max-height: 88dvh; overflow-y: auto;
+    background: var(--panel); border-radius: 16px 16px 0 0; border-top: 1px solid var(--border); box-shadow: 0 -10px 40px rgba(0,0,0,.5);
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)); animation: sheetUp .2s ease-out; }
+  .mob-more[hidden] { display: none; }
+  .mm-run { padding: 8px 16px 2px; font-size: 12.5px; color: var(--fg-2); }
+  .mm-run:empty { display: none; }
+  .mm-list { display: flex; flex-direction: column; padding: 4px 8px; }
+  .mm-item { display: flex; align-items: center; gap: 14px; text-align: left; padding: 11px 10px; border: none; background: transparent; border-radius: 10px; cursor: pointer; }
+  .mm-item:active { background: var(--panel-2); }
+  .mm-item:disabled { opacity: .4; }
+  .mm-item svg { flex: none; color: var(--accent); }
+  .mm-item b { display: block; font-size: 15px; font-weight: 600; }
+  .mm-item small { display: block; font-size: 12px; color: var(--fg-2); }
+  .mm-note { padding: 6px 18px 4px; font-size: 12.5px; color: var(--fg-2); }
+  .mm-note:empty { display: none; }
+
+  /* map overlays */
+  .mini-legend { display: block; }
+  .readout { left: 8px; right: auto; max-width: calc(100% - 16px); bottom: 70px; white-space: normal; font-size: 12px; padding: 6px 8px; }
+  .readout.tapped { right: 8px; }
+  .sus-chip { bottom: 116px; left: 8px; right: 8px; transform: none; max-width: none; font-size: 12px; gap: 6px; }
+  .sus-chip > b { white-space: nowrap; }
+  .sus-chip { overflow: hidden; text-overflow: ellipsis; }
+  .su-start { min-width: 0; width: 100%; }
+  .su-card .tbl-wrap { max-height: none; }
+  .map-wrap:has(.readout.tapped) .leaflet-control-scale { visibility: hidden; }
+  .readout #roTxt { flex: 1; min-width: 0; }
+  .nodata { top: 64px; font-size: 13px; max-width: calc(100% - 24px); text-align: center; }
+  .toast { left: 10px; right: 10px; top: 10px; max-width: none; z-index: 2700; }
+  .loading { right: 8px; left: auto; top: 64px; max-width: calc(100% - 16px); }
+  .measure-box { position: fixed; left: 58px !important; right: 8px; top: calc(58px + env(safe-area-inset-top)); min-width: 0; max-width: none; }
+  .leaflet-control-scale { margin-bottom: 4px !important; transform: scale(.85); transform-origin: right bottom; }
+
+  /* time bar */
+  .timebar { height: auto; min-height: 60px; padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); gap: 4px; }
+  .timebar .icon-btn { width: 40px; height: 40px; }
+  .time-label { min-width: 0; padding: 0 4px; }
+  .t-main { font-size: 13px; white-space: nowrap; }
+  .t-sub { font-size: 10.5px; white-space: nowrap; }
+  #timeSlider { height: 30px; }
+
+  /* point / area forecast -> full screen page */
+  .drawer, .drawer.wide { position: fixed !important; inset: 0; width: 100% !important; height: 100% !important; z-index: 2500; border-left: none;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .drawer-head { padding: 8px 8px 8px 14px; }
+  .drawer-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .menu { right: 0; max-width: calc(100vw - 20px); }
+
+  /* dialogs -> full screen pages */
+  .modal { place-items: stretch; grid-template-columns: 100%; grid-template-rows: 100%; }
+  .modal-card, .modal-body { min-width: 0; }
+  .cl-ka, .cl-ka .tbl-wrap { min-width: 0; width: 100%; max-height: none; }
+  .cl-rose { width: 100%; max-width: 320px; align-self: center; }
+  .cl-form { grid-template-columns: 1fr !important; }
+  .cl-dt input[type=date] { flex: 1; min-width: 0; }
+  .cl-data { flex-wrap: wrap; }
+  .coord-form label.tog { display: block !important; color: var(--fg); font-size: 14px; }
+  .coord-form label.tog input { vertical-align: -3px; margin: 0 8px 0 0; }
+  .cl-dt .hhmm { flex: 0 0 80px; width: 80px !important; }
+  .drawer-actions .btn-sm { white-space: nowrap; }
+  .modal-card, .modal-card.narrow, .modal-card.wide, .modal-card.plan-card, .modal-card.sd-card, .modal-card.climo-card {
+    width: 100% !important; max-width: none !important; max-height: none; height: 100%; border-radius: 0; border: none;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .modal-head { padding: 8px 8px 8px 14px; font-size: 15px; }
+  .modal-body { padding: 12px 14px 24px; flex: 1; -webkit-overflow-scrolling: touch; }
+  .modal-foot { flex-wrap: wrap; }
+  .modal input, .modal select, .modal textarea, .drawer select, .drawer input { font-size: 16px !important; }
+  .modal input[type=number], .modal input[type=text], .modal input:not([type]), .modal select { min-height: 36px; }
+  .modal .icon-btn, .drawer .icon-btn { width: 40px; height: 40px; }
+  .sd-row { flex-wrap: wrap; gap: 10px 14px !important; }
+  .sd-custom { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .sd-custom[hidden] { display: none !important; }
+  .gen-row { grid-template-columns: 1fr 1fr !important; }
+  .cl-actions { flex-wrap: wrap; }
+  .cl-actions .btn { flex: 1 1 auto; justify-content: center; height: 42px; }
+  .cl-actions .spacer { display: none; }
+
+  .empty-card { padding: 20px 16px; }
+  .empty-card .row-btns .btn { width: 100%; justify-content: center; height: 44px; }
+}
+@keyframes sheetUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+
 </style>
 <meta name="theme-color" content="#0f2740">
 <script>
@@ -1132,6 +1322,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
 </script>
 </head>
 <body>
+<script>(function(){var m=window.matchMedia;if(m&&m("(hover: none) and (pointer: coarse)").matches)document.body.classList.add("touch-ui");})();</script>
 <header class="topbar">
   <button class="icon-btn" id="btnMenu" title="Show / hide panel" aria-label="Toggle panel">
     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1172,6 +1363,9 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <span class="lbl">Watch folder</span>
   </button>
+  <button class="btn mob-only" id="btnMore" title="More" aria-label="More">
+    <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="5" r="1.9" fill="currentColor"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/><circle cx="12" cy="19" r="1.9" fill="currentColor"/></svg>
+  </button>
   <button class="btn primary" id="btnOpen" title="Open one GRIB file (plus an optional cur*.grb current file)">
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span class="lbl">Open GRIB</span>
@@ -1210,6 +1404,8 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 16l3 4h12l3-4zM12 3v11M12 4l6 8h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> Ops / route forecast</button>
       <button class="btn route-btn" id="btnOps" title="Go / No-Go: wind below or above your limits">
         <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 12l3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Go / No-Go (wind)</button>
+      <button class="btn route-btn" id="btnSustain" title="Where in an area the wind stays within limits for a whole time window, start point and ship's head">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 8h11a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Sustained wind (flying ops)</button>
       <div id="itemList" class="item-list"><div class="muted">Use the tools on the map (top-left) to measure distance or mark a square, rectangle or circle.</div></div>
       <div class="item-actions">
         <button class="btn-sm" id="btnExportItems" title="Save areas to a file">Export</button>
@@ -1220,15 +1416,16 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       </div>
     </section>
     <section class="hint">
-      Click the map for a point forecast (meteogram).<br>
-      Keys: <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Space</kbd> play<br><br>
+      <span class="pc-only">Click the map for a point forecast (meteogram).<br>
+      Keys: <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Space</kbd> play<br><br></span>
+      <span class="touch-only">Tap the map for the value there, then <b>Forecast ›</b> for the point forecast. Pinch to zoom.<br><br></span>
       Reads GRIB1 and GRIB2 (simple / complex packing). Everything runs inside this page — no server or internet needed.
     </section>
   </aside>
 
   <div class="map-wrap">
     <div id="map"></div>
-    <div class="readout" id="readout">Move over the map</div>
+    <div class="readout" id="readout"><span id="roTxt"><span class="pc-only">Move over the map</span><span class="touch-only">Tap the map for values</span></span><button class="ro-fc" id="roFc" hidden>Forecast ›</button><button class="ro-x" id="roX" aria-label="Clear">×</button></div>
     <div class="nodata" id="noData" hidden>No data for this parameter at this time</div>
     <div class="toast" id="toast" hidden></div>
     <div class="loading" id="loading" hidden><span class="spin"></span> <span id="loadingTxt">Loading</span></div>
@@ -1240,6 +1437,8 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         <div class="drop">Drag &amp; drop a <b>.grb / .grib2</b> file anywhere on this page</div>
         <div class="row-btns">
           <button class="btn primary" id="emptyOpen">Open GRIB file…</button>
+          <button class="btn" id="emptyDownload">Download forecast (internet)…</button>
+          <button class="btn" id="emptyLast" hidden>Open last download</button>
           <button class="btn" id="emptyWatch">Watch a folder (auto-load latest)…</button>
           <button class="btn warn" id="emptyReconnect" hidden>Reconnect to <b id="emptyReconnectName"></b></button>
         </div>
@@ -1346,6 +1545,26 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       <div class="muted" id="omAutoTxt" hidden></div>
       <div class="cl-actions"><button class="btn primary" id="omGo">Download now</button><button class="btn" id="omLast">Open last download</button><span class="muted" id="omLastTxt"></span></div>
       <div class="muted sd-help">Data: <b>Open-Meteo.com</b> (CC BY 4.0) – free for non-commercial use, about 5 000 point-requests per hour. Weather: wind, gust, pressure, rain, cloud, visibility, temperature. Marine: significant wave and swell height / direction / period, currents, sea temperature (empty over land). Needs normal internet; on ship / satellite e-mail use <b>Saildocs</b> instead. The last download is kept in this browser and can be reopened offline.</div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="susModal" hidden>
+  <div class="modal-card narrow su-card">
+    <div class="modal-head"><b>Sustained wind (flying ops)</b><button class="icon-btn" id="suClose" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+    <div class="modal-body coord-form">
+      <label class="tog"><input type="checkbox" id="suOn"> <b>Show sustained wind</b></label>
+      <div class="su-grid">
+        <label>Date <input type="date" id="suDate"></label>
+        <label>Times in <select id="suZone"><option value="IST">IST</option><option value="UTC">UTC (Z)</option></select></label>
+        <label>From (HHMM) <input id="suFrom" maxlength="4" inputmode="numeric"></label>
+        <label>To (HHMM) <input id="suTo" maxlength="4" inputmode="numeric"></label>
+        <label>Wind at least (kt) <input type="number" id="suMin" min="0" step="any"></label>
+        <label>and at most (kt) <input type="number" id="suMax" min="0" step="any" placeholder="no limit"></label>
+      </div>
+      <label>Relative wind for flying (ship's head in the read-out) <select id="suRel"><option value="A0">Ahead (0°)</option><option value="R10">Red 10</option><option value="R15">Red 15</option><option value="R20">Red 20</option><option value="R25">Red 25</option><option value="R30">Red 30</option><option value="G10">Green 10</option><option value="G15">Green 15</option><option value="G20">Green 20</option><option value="G25">Green 25</option><option value="G30">Green 30</option></select></label>
+      <div class="muted">Map: <b>green</b> = wind inside the limits for the whole period, <b>yellow</b> = at least 75 % of the time, <b>red</b> = less. Click / tap a position for the wind range there and the ship's head (Red 15 = wind 15° on the port bow). True wind from the loaded forecast.</div>
+      <div class="cl-actions"><button class="btn primary" id="suGo">Show on map</button></div>
+      <div id="suOut" class="muted"></div>
     </div>
   </div>
 </div>
@@ -2273,7 +2492,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   L.control.scale({ imperial: true, metric: true, position: "bottomright" }).addTo(map);
   map.createPane("fieldPane").style.zIndex = 350;
   map.createPane("landPane").style.zIndex = 420;
-  map.createPane("vecPane").style.zIndex = 450;
+  map.createPane("vecPane").style.zIndex = 465;     // grid values above area / route lines (labels are higher still)
   map.createPane("portPane").style.zIndex = 470;
   ["fieldPane", "vecPane"].forEach((p) => (map.getPane(p).style.pointerEvents = "none"));
 
@@ -2412,6 +2631,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (!arr || !LUT) return;
     const fmd = fieldMeta();
     if (fmd && fmd.kind === "direction") return;      // wave / swell direction: arrows only, no colour map
+    if (fmd && fmd.noShade) return;                     // line-only products (sustained wind)
     const G = g.G, step = stepOverride || 2, W = Math.ceil(size.x / step), H = Math.ceil(size.y / step);
     off.width = W; off.height = H;
     const octx = off.getContext("2d"), img = octx.createImageData(W, H), px = img.data;
@@ -2440,8 +2660,8 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (!S.ds) return;
     if ($("ovGrid").checked) drawGraticule(ctx, size, m);
     const fm = fieldMeta();
-    if (S.grid && fm && $("ovContours").checked && scaleOf(fm).contours && scaleOf(fm).contours.length)
-      drawContours(ctx, m, S.grid.G, scalarArray(S.grid), scaleOf(fm).contours, "#1d2a36", fm.units === "m" ? 1 : 0, 1.0);
+    if (S.grid && fm && ($("ovContours").checked || fm.forceContours) && scaleOf(fm).contours && scaleOf(fm).contours.length)
+      drawContours(ctx, m, S.grid.G, scalarArray(S.grid), scaleOf(fm).contours, "#1d2a36", fm.units === "m" ? 1 : 0, 1.0, false, fm);
     if ($("ovIsobars").checked && S.msl) drawContours(ctx, m, S.msl.G, smoothed(S.msl), isobarLevels(), "#24364a", 0, 1.3, true);
     if (S.grid && fm && ($("ovVectors").checked || fm.kind === "direction" || isWave(fm))) drawVectors(ctx, m, fm);
     if (S.point && !S.point.area && !S.point.route) {
@@ -2488,6 +2708,36 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     }
     ctx.restore();
   }
+  // contour pieces -> continuous lines, then 3 rounds of Chaikin corner cutting (closed rings stay closed)
+  function smoothChains(segs) {
+    const key = (p) => p[0].toFixed(4) + "," + p[1].toFixed(4), ends = new Map(), used = new Uint8Array(segs.length);
+    segs.forEach(([p, q], i) => { for (const e of [p, q]) { const k = key(e); if (!ends.has(k)) ends.set(k, []); ends.get(k).push(i); } });
+    const next = (pt) => { const l = ends.get(key(pt)) || []; for (const i of l) if (!used[i]) return i; return -1; };
+    const out = [];
+    for (let s0 = 0; s0 < segs.length; s0++) {
+      if (used[s0]) continue;
+      used[s0] = 1;
+      const ch = [segs[s0][0], segs[s0][1]];
+      for (const dir of [1, 0]) {                       // grow forwards, then backwards
+        for (;;) {
+          const tip = dir ? ch[ch.length - 1] : ch[0], i = next(tip); if (i < 0) break;
+          used[i] = 1; const [p, q] = segs[i], other = key(p) === key(tip) ? q : p;
+          if (dir) ch.push(other); else ch.unshift(other);
+        }
+      }
+      const closed = ch.length > 3 && key(ch[0]) === key(ch[ch.length - 1]);
+      let c = ch;
+      for (let it = 0; it < 3 && c.length > 2; it++) {
+        const n = [];
+        if (!closed) n.push(c[0]);
+        for (let k = 0; k < c.length - 1; k++) { const a = c[k], b = c[k + 1]; n.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]], [0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]); }
+        if (closed) n.push(n[0]); else n.push(c[c.length - 1]);
+        c = n;
+      }
+      out.push(c);
+    }
+    return out;
+  }
   function contourSegments(arr, G, level) {
     const nx = G.nx, ny = G.ny, segs = [];
     for (let i = 0; i < ny - 1; i++) for (let j = 0; j < nx - 1; j++) {
@@ -2511,7 +2761,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     }
     return segs;
   }
-  function drawContours(ctx, m, G, arr, levels, color, dec, width, bold4) {
+  function drawContours(ctx, m, G, arr, levels, color, dec, width, bold4, opt) {
     if (!arr) return;
     const dLat = (G.lat_n - G.lat_s) / (G.ny - 1), dLon = (G.lon_e - G.lon_w) / (G.nx - 1);
     let min = Infinity, max = -Infinity;
@@ -2522,24 +2772,37 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     for (const lev of levels) {
       if (lev < min || lev > max) continue;
       const segs = contourSegments(arr, G, lev);
-      ctx.strokeStyle = color; ctx.lineWidth = bold4 && lev % 4 === 0 ? width + 0.6 : width; ctx.globalAlpha = 0.85;
+      const bold = opt && opt.contourBold && opt.contourBold.includes(lev);
+      ctx.strokeStyle = color; ctx.lineWidth = bold ? width + 1.4 : bold4 && lev % 4 === 0 ? width + 0.6 : width; ctx.globalAlpha = 0.85;
       ctx.beginPath();
       const pts = [];
-      for (const [p, q] of segs) { const A = proj(p), B = proj(q); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); pts.push([(A.x + B.x) / 2, (A.y + B.y) / 2]); }
-      ctx.stroke();
-      for (let k = Math.floor(pts.length / 3); k < pts.length; k += 9) {
+      if (opt && opt.contourSmooth) {
+        // join the pieces into lines and round them off (Chaikin) for smooth curves
+        for (const ch of smoothChains(segs)) {
+          const P = ch.map(proj);
+          ctx.moveTo(P[0].x, P[0].y); for (let k = 1; k < P.length; k++) ctx.lineTo(P[k].x, P[k].y);
+          for (let k = 1; k < P.length; k++) pts.push([(P[k - 1].x + P[k].x) / 2, (P[k - 1].y + P[k].y) / 2]);
+        }
+      } else for (const [p, q] of segs) { const A = proj(p), B = proj(q); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); pts.push([(A.x + B.x) / 2, (A.y + B.y) / 2]); }
+      if (opt && opt.contourDash) {                        // dotted line: round dots with a thin white rim (e.g. sustained-wind area)
+        ctx.setLineDash(opt.contourDash); ctx.lineCap = "round";
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 5.2; ctx.stroke();
+        ctx.globalAlpha = 1; ctx.strokeStyle = opt.contourColor || color; ctx.lineWidth = 3.4; ctx.stroke(); ctx.setLineDash([]);
+      } else ctx.stroke();
+      const lStep = opt && opt.contourSmooth ? 80 : 9, lGap = opt && opt.contourSmooth ? 300 : 130;
+      for (let k = Math.floor(pts.length / 3); k < pts.length; k += lStep) {
         const [x, y] = pts[k];
         if (x < 20 || y < 20 || x > sz.x - 20 || y > sz.y - 20) continue;
-        if (labels.some(([lx, ly]) => Math.hypot(lx - x, ly - y) < 130)) continue;
+        if (labels.some(([lx, ly]) => Math.hypot(lx - x, ly - y) < lGap)) continue;
         labels.push([x, y, lev]);
       }
     }
     ctx.globalAlpha = 1;
     ctx.font = "bold 11px Consolas, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     for (const [x, y, lev] of labels) {
-      const t = dec ? lev.toFixed(dec) : String(lev);
+      const t = opt && opt.contourLabel ? opt.contourLabel(lev) : dec ? lev.toFixed(dec) : String(lev);
       ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.strokeText(t, x, y);
-      ctx.fillStyle = color; ctx.fillText(t, x, y);
+      ctx.fillStyle = (opt && opt.contourColor) || color; ctx.fillText(t, x, y);
     }
     ctx.restore();
   }
@@ -2553,6 +2816,22 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     const wv = fm.limits ? getData("wind", g.t !== undefined ? g.t : curTime()) : null;
     const wSame = wv && wv.G.nx === G.nx && wv.G.ny === G.ny && Math.abs(wv.G.lat_n - G.lat_n) < 1e-6 && Math.abs(wv.G.lon_w - G.lon_w) < 1e-6;
     const b = m.getBounds().pad(0.05);
+    // on screen: keep the numbers clear of area / route labels (moved just below or above a label instead of hidden)
+    const boxes = [];
+    if ((fm.limits || fm.ss) && m === map) {
+      const r0 = map.getContainer().getBoundingClientRect();
+      document.querySelectorAll(".leaflet-pane .item-label, .leaflet-pane .map-label").forEach((el) => {
+        const r = el.getBoundingClientRect(); if (!r.width) return;
+        boxes.push([r.left - r0.left - 3, r.top - r0.top - 3, r.right - r0.left + 3, r.bottom - r0.top + 3]);
+      });
+    }
+    const hit = (x, y, w, h) => boxes.some((q) => x + w / 2 > q[0] && x - w / 2 < q[2] && y + h / 2 > q[1] && y - h / 2 < q[3]);
+    const place = (x, y, w, h) => {
+      if (!boxes.length || !hit(x, y, w, h)) return [x, y];
+      const q = boxes.find((r) => x + w / 2 > r[0] && x - w / 2 < r[2] && y + h / 2 > r[1] && y - h / 2 < r[3]);
+      for (const ny of [q[3] + h / 2 + 1, q[1] - h / 2 - 1]) if (!hit(x, ny, w, h)) return [x, ny];
+      return [x, y];
+    };
     ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
     for (let i = 0; i < G.ny; i += st) {
       const lat = G.lat_n - i * dLat;
@@ -2568,16 +2847,19 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
           let u, v;
           if (wSame) { u = wv.comps.u[k]; v = wv.comps.v[k]; } else { const [fx, fy] = toIJ(wv.G, lat, lon); u = sample(wv.comps.u, wv.G, fx, fy, true); v = sample(wv.comps.v, wv.G, fx, fy, true); }
           if (!isFinite(u) || !isFinite(v)) continue;
+          if (fm.seaOnly && !isFinite(g.comps.val[k])) continue;          // no values over land
           const txt = `${String(Math.round(dirFrom(u, v)) % 360).padStart(3, "0")}/${Math.round(Math.hypot(u, v))}`;
+          const [tx, ty] = place(p.x, p.y, txt.length * 7.2 + 6, 16);
           ctx.font = "800 12px Consolas, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,255,255,.92)"; ctx.strokeText(txt, p.x, p.y);
-          ctx.fillStyle = "#0d1b2a"; ctx.fillText(txt, p.x, p.y);
+          ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,255,255,.92)"; ctx.strokeText(txt, tx, ty);
+          ctx.fillStyle = "#0d1b2a"; ctx.fillText(txt, tx, ty);
         }
         else if (fm.ss) {
           const n = ssOf(g.comps.val[k]); if (n === null) continue;
+          const [tx, ty] = place(p.x, p.y, 14, 18);
           ctx.font = "800 15px Segoe UI, Arial, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.strokeText(String(n), p.x, p.y);
-          ctx.fillStyle = "#0d1b2a"; ctx.fillText(String(n), p.x, p.y);
+          ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.strokeText(String(n), tx, ty);
+          ctx.fillStyle = "#0d1b2a"; ctx.fillText(String(n), tx, ty);
         }
         else if (g.comps.dir) {
           const d = g.comps.dir[k], hv = fm.kind === "direction" ? (g.comps.hgt ? g.comps.hgt[k] : 1) : g.comps.val[k];
@@ -2630,6 +2912,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (S.grid) S.grid.t = t;
     S.msl = $("ovIsobars").checked ? getData("msl", t) : null;
     $("noData").hidden = !!S.grid;
+    if (!S.grid) { const fmN = fieldMeta(S.field); $("noData").textContent = (fmN && fmN.noDataTxt) || "No data for this parameter at this time"; }
     redrawAll();
     updateStats();
     updateReadout();
@@ -2668,7 +2951,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   const OV_DEF = { ocean: { ovIsobars: false, ovContours: true }, atmos: { ovIsobars: true, ovContours: false } };
   const ovState = { ocean: Object.assign({}, OV_DEF.ocean), atmos: Object.assign({}, OV_DEF.atmos) };
   let ovCat = null;
-  const catOf = (fm) => (fm && fm.group === "Ocean" ? "ocean" : "atmos");
+  const catOf = (fm) => (fm && (fm.ovCat || (fm.group === "Ocean" ? "ocean" : "atmos")));
   ["ovIsobars", "ovContours"].forEach((id) => $(id).addEventListener("change", () => { if (ovCat) ovState[ovCat][id] = $(id).checked; }));
   function applyOvCat(fm) {
     const c = catOf(fm);
@@ -2693,6 +2976,9 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     showStep();
   }
   function buildLegend(fm) {
+    try { buildLegend2(fm); } finally { document.dispatchEvent(new CustomEvent("vkt:legend", { detail: { fm, sc: fm.kind === "direction" ? null : scaleOf(fm), title: titleU(fm) } })); }
+  }
+  function buildLegend2(fm) {
     $("legendTitle").textContent = titleU(fm);
     const box = $("legend"); box.innerHTML = "";
     $("btnEditScale").hidden = fm.kind === "direction" || !!fm.ss || !!fm.noEdit;
@@ -2800,12 +3086,30 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   }
   function updateReadout() {
     if (!lastMouse) return;
-    $("readout").textContent = `${fmtLat(lastMouse.lat)} ${fmtLon(lastMouse.lng)}  ·  ${valueText(lastMouse.lat, lastMouse.lng)}`;
+    $("roTxt").textContent = `${fmtLat(lastMouse.lat)} ${fmtLon(lastMouse.lng)}  ·  ${valueText(lastMouse.lat, lastMouse.lng)}`;
   }
   map.on("mousemove", (e) => { lastMouse = e.latlng; updateReadout(); });
 
   // ------------------------------------------------------------------ point & area forecast (drawer + export)
-  map.on("click", (e) => { if (window.VKTTools && window.VKTTools.busy()) return; openPoint(e.latlng.lat, e.latlng.lng); });
+  // touch screens: a tap shows the value there (read-out + marker); "Forecast ›" opens the point forecast
+  const touchUI = () => document.body.classList.contains("touch-ui");
+  let tapMark = null;
+  function showTap(ll) {
+    lastMouse = ll; updateReadout();
+    if (!tapMark) tapMark = L.circleMarker(ll, { radius: 7, color: "#062033", weight: 2, fillColor: "#ffd166", fillOpacity: 1, interactive: false }).addTo(map);
+    else tapMark.setLatLng(ll).addTo(map);
+    $("roFc").hidden = !S.ds; $("readout").classList.add("tapped");
+  }
+  function clearTap() { if (tapMark) map.removeLayer(tapMark); $("roFc").hidden = true; $("readout").classList.remove("tapped"); }
+  $("roFc").onclick = (e) => { e.stopPropagation(); if (lastMouse) openPoint(lastMouse.lat, lastMouse.lng); };
+  $("roX").onclick = (e) => { e.stopPropagation(); clearTap(); };
+  let lastClick = null;
+  map.on("click", (e) => {
+    if (window.VKTTools && window.VKTTools.busy()) return;
+    lastClick = e.latlng;
+    if (touchUI()) { showTap(e.latlng); return; }
+    openPoint(e.latlng.lat, e.latlng.lng);
+  });
   const isFromDir = (f) => f.id === "wind" || f.barbs;
   function pointSeries(lat, lon) {
     const ds = S.ds, res = { kind: "point", lat, lon, times: ds.times, series: {} };
@@ -3751,8 +4055,8 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       ctx.setLineDash([]);
     }
     // contours, isobars, vectors (same switches as on screen)
-    if (S.grid && fm && $("ovContours").checked && fm.kind !== "direction" && scaleOf(fm).contours && scaleOf(fm).contours.length)
-      drawContours(ctx, P, S.grid.G, scalarArray(S.grid), scaleOf(fm).contours, "#1d2a36", fm.units === "m" ? 1 : 0, 1.0);
+    if (S.grid && fm && ($("ovContours").checked || fm.forceContours) && fm.kind !== "direction" && scaleOf(fm).contours && scaleOf(fm).contours.length)
+      drawContours(ctx, P, S.grid.G, scalarArray(S.grid), scaleOf(fm).contours, "#1d2a36", fm.units === "m" ? 1 : 0, 1.0, false, fm);
     const isob = $("ovIsobars").checked && S.msl;
     if (isob) drawContours(ctx, P, S.msl.G, smoothed(S.msl), isobarLevels(), "#24364a", 0, 1.3, true);
     const vec = S.grid && fm && (($("ovVectors").checked && (fm.kind === "vector" || fm.comps.dir || fm.ss || fm.limits)) || fm.kind === "direction" || isWave(fm));
@@ -3904,7 +4208,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       const keys = [];
       if (vec) keys.push(fm.limits ? "Numbers: wind direction (from, °T) / speed (kt)" : fm.ss ? "Numbers: sea state (SS) at grid points" : (fm.id === "wind" || fm.barbs) ? "Barbs: wind (kt) — pennant 50, full 10, half 5" : fm.kind === "vector" ? "Arrows: current (direction of set)" : "Arrows: direction of travel of waves" + (fm.kind === "direction" ? "" : ", length ∝ height"));
       if (isob) keys.push("Isobars: MSL pressure, 2 hPa interval");
-      if ($("ovContours").checked && fm.kind !== "direction" && (scaleOf(fm).contours || []).length) keys.push("Contours: " + fm.title);
+      if (($("ovContours").checked || fm.forceContours) && fm.kind !== "direction" && (scaleOf(fm).contours || []).length) keys.push("Contours: " + fm.title);
       ctx.textAlign = "right"; ctx.textBaseline = "top"; ctx.font = "600 11.5px Segoe UI, Arial, sans-serif"; ctx.fillStyle = C.fg2;
       keys.forEach((k, i) => ctx.fillText(k, mx + mw, ly - 16 + i * 16));
     }
@@ -4604,7 +4908,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
 
   // API for tools.js (measurement, areas, colour editor)
   window.VKTAPI = { map, S, fieldMeta, getData, scalarArray, toIJ, sample, fmtLat, fmtLon, fmtZ, fmt, esc, toast, curTime,
-    scaleOf, setCustomScale, redrawAll, setT, renderExport, openArea, refreshArea, refreshForecasts, ssOf, ssText, useDataset, backToForecast, refreshDerived, isClimo, idbGet: (k) => IDB.get(k), idbSet: (k, v) => IDB.set(k, v), fmtIST, shortIST, shortZ, fmtDir, compass, fmtLat, fmtLon, loading, openRouteDialog, exportForecastSheet, forecastSources, downloadCsv };
+    scaleOf, setCustomScale, redrawAll, setT, renderExport, openArea, refreshArea, refreshForecasts, ssOf, ssText, useDataset, backToForecast, refreshDerived, isClimo, idbGet: (k) => IDB.get(k), idbSet: (k, v) => IDB.set(k, v), fmtIST, shortIST, shortZ, fmtDir, compass, fmtLat, fmtLon, loading, openRouteDialog, exportForecastSheet, forecastSources, downloadCsv, lastPoint: () => lastClick, landRings: () => RINGS.land };
   // test hook
   window.VKT = { loadBuffers: (arr) => loadFiles(arr.map((a) => ({ name: a.name, mtime: a.mtime || Date.now(), size: a.buf.byteLength, getBuffer: async () => a.buf }))), state: S };
 })();
@@ -4666,9 +4970,13 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   let items = [];
   let seq = 1;
   map.createPane("shapePane").style.zIndex = 460;
+  map.createPane("itemLabelPane").style.zIndex = 480;          // area / route labels above the grid values
   const shapeGroup = L.layerGroup().addTo(map);
 
+  let vecT = null;
+  const vecRedraw = () => { clearTimeout(vecT); vecT = setTimeout(() => { try { A.redrawAll && A.redrawAll(); } catch (e) { /* ignore */ } }, 60); };   // grid values move clear of new labels
   function save() {
+    vecRedraw();
     try { localStorage.setItem(STORE, JSON.stringify(items.map(({ layer, label, _marks, _legLabels, _label, ...rest }) => rest))); } catch (e) { /* ignore */ }
   }
   function load() {
@@ -4721,11 +5029,11 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
       for (let i = 1; i < g.pts.length; i++) {
         const r = rhumb(g.pts[i - 1], g.pts[i]);
         const mid = L.latLng((g.pts[i - 1].lat + g.pts[i].lat) / 2, (g.pts[i - 1].lng + g.pts[i].lng) / 2);
-        it._legLabels.push(L.tooltip({ permanent: true, direction: "center", className: "map-label lite item-label", pane: "shapePane", interactive: false }).setLatLng(mid).setContent(`${fmtBrg(r.brg)} ${fmtNm(r.dist)} nm`));
+        it._legLabels.push(L.tooltip({ permanent: true, direction: "center", className: "map-label lite item-label", pane: "itemLabelPane", interactive: false }).setLatLng(mid).setContent(`${fmtBrg(r.brg)} ${fmtNm(r.dist)} nm`));
       }
     }
     // name label sits just outside the bottom edge so it does not hide the data inside
-    it._label = L.tooltip({ permanent: true, direction: "bottom", offset: [0, 4], className: "map-label lite item-label", pane: "shapePane", interactive: false, opacity: 0.95 })
+    it._label = L.tooltip({ permanent: true, direction: "bottom", offset: [0, 4], className: "map-label lite item-label", pane: "itemLabelPane", interactive: false, opacity: 0.95 })
       .setLatLng(labelPos(it)).setContent(esc(it.name));
     layer.on("click", (e) => { L.DomEvent.stopPropagation(e); if (busy()) { onClick(e); return; } openPopup(it, e.latlng); });
     it.layer = layer;
@@ -4765,6 +5073,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     return [f2 / D2R, l2 / D2R];
   }
   function showLayers(it, on) {
+    vecRedraw();
     const mk = it._marks || [], lyr = [mk[0], it.layer, ...mk.slice(1)].filter(Boolean);
     if (on) { lyr.forEach((l) => l.addTo(shapeGroup)); it._label.addTo(map); (it._legLabels || []).forEach((t) => t.addTo(map)); }
     else { lyr.forEach((l) => shapeGroup.removeLayer(l)); map.removeLayer(it._label); (it._legLabels || []).forEach((t) => map.removeLayer(t)); }
@@ -4999,11 +5308,18 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     square: "Click a corner, move, click to fix the size · Esc cancels",
     circle: "Click the centre, then click the edge · Esc cancels",
   };
+  const HINTS_T = {
+    measure: "Tap to add points · Finish when done",
+    rect: "Tap the first corner, then the opposite corner",
+    square: "Tap a corner, then tap to set the size",
+    circle: "Tap the centre, then tap the edge",
+  };
   const TITLES = { measure: "Distance & bearing", rect: "Rectangle", square: "Square", circle: "Circle" };
   function showBox(content) {
     const box = $("measureBox");
     box.hidden = false;
-    box.innerHTML = `<h4><span>${TITLES[tool]}</span><span class="muted">${tool === "measure" ? "rhumb line" : ""}</span></h4>` + (content || "") + `<div class="hintline">${HINTS[tool]}</div>`;
+    box.innerHTML = `<h4><span>${TITLES[tool]}</span><span class="muted">${tool === "measure" ? "rhumb line" : ""}</span></h4>` + (content || "") + `<div class="hintline">${(document.body.classList.contains("touch-ui") ? HINTS_T : HINTS)[tool]}</div>` +
+      `<div class="mb-acts">${tool === "measure" ? `<button class="btn-sm" data-mb="undo">Undo point</button><button class="btn-sm primary" data-mb="finish">Finish</button>` : ""}<button class="btn-sm" data-mb="cancel">Cancel</button></div>`;
   }
 
   function rectFrom(a, b, square) {
@@ -5091,6 +5407,18 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   }
   map.on("mousemove", onMove);
   map.on("click", onClick);
+  // buttons in the measure box (touch screens have no Enter / Backspace / Esc)
+  $("measureBox").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-mb]"); if (!b) return;
+    e.stopPropagation();
+    if (b.dataset.mb === "finish") finishMeasure();
+    else if (b.dataset.mb === "cancel") { cancelDraw(); setTool(null); }
+    else if (b.dataset.mb === "undo" && tool === "measure" && pts.length) {
+      pts.pop(); const m = tempMarks.pop(); if (m) map.removeLayer(m);
+      if (temp) { temp.setLatLngs(pts); tempCas.setLatLngs(pts); } if (pts.length) measureTable(pts, false); else showBox();
+    }
+  });
+  L.DomEvent.disableClickPropagation($("measureBox"));
   map.on("dblclick", (e) => { if (tool === "measure") { L.DomEvent.stop(e); finishMeasure(); } });
   document.addEventListener("keydown", (e) => {
     if (!tool) return;
@@ -6105,8 +6433,11 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   const BATCH = 100, PAR = 2, PER_MIN = 450;   // stay below Open-Meteo's free limit of 600 location-calls per minute
   const sent = [];                                // [time, calls] of recent requests (shared by weather + marine)
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let abort = false;                              // set by the Cancel button of the progress card
+  const chkAbort = () => { if (abort) throw new Error("Download cancelled"); };
   async function slot(n, wait) {                  // wait until n more calls fit into the rolling minute
     for (;;) {
+      chkAbort();
       const now = Date.now();
       while (sent.length && now - sent[0][0] > 60000) sent.shift();
       const used = sent.reduce((a, x) => a + x[1], 0);
@@ -6158,6 +6489,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     let next = 0, done = 0;
     const job = async () => {
       while (next < pts.length) {
+        chkAbort();
         const a = next; next += BATCH;
         const part = pts.slice(a, a + BATCH);
         const q = `latitude=${part.map((p) => p[0].toFixed(3)).join(",")}&longitude=${part.map((p) => (((p[1] + 540) % 360) - 180).toFixed(3)).join(",")}` +
@@ -6165,10 +6497,10 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         const w = Math.max(1, Math.min(hours, 384) / 336) * (vars.length > 10 ? vars.length / 10 : 1);
         let res, tries = 0;
         for (;;) {
-          await slot(Math.ceil(part.length * w), (sec) => onProg(done / pts.length, `waiting ${sec} s for the Open-Meteo per-minute limit`));
+          await slot(Math.ceil(part.length * w), (sec) => onProg(done / pts.length, `waiting ${sec} s for the Open-Meteo per-minute limit`, done, pts.length));
           try { res = await fetch(`${url}?${q}`); } catch (e) { throw new Error("No connection to Open-Meteo (internet needed)"); }
           if (res.status === 429 && tries++ < 6) {
-            for (let k = 61; k > 0; k--) { onProg(done / pts.length, `Open-Meteo limit reached – retrying in ${k} s`); await sleep(1000); }
+            for (let k = 61; k > 0; k--) { chkAbort(); onProg(done / pts.length, `Open-Meteo limit reached – retrying in ${k} s`, done, pts.length); await sleep(1000); }
             continue;
           }
           break;
@@ -6176,7 +6508,7 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
         if (!res.ok) { let m = res.statusText; try { const j = await res.json(); m = j.reason || m; } catch (e) { /* ignore */ } throw new Error(`Open-Meteo: ${m} (${res.status})`); }
         let j = await res.json(); if (!Array.isArray(j)) j = [j];
         j.forEach((r, k) => (out[a + k] = r));
-        done += part.length; onProg(done / pts.length);
+        done += part.length; onProg(done / pts.length, "", done, pts.length);
       }
     };
     await Promise.all(Array.from({ length: PAR }, job));
@@ -6192,13 +6524,50 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (!o.atm && !o.marine) throw new Error("Tick atmosphere and / or marine data");
     if (G.nx * G.ny > 3000) throw new Error(`${G.nx * G.ny} grid points – too many. Use a coarser grid or a smaller area (max 3000).`);
     const raw = { G, model, hours: o.hours, step: o.step, fetched: Date.now() };
-    const prog = quiet
-      ? (k, f, msg) => { badge(Math.round(f * 100) + "%"); $("btnOpenMeteo").title = `Refreshing ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""); }
-      : (k, f, msg) => A.loading(true, `Downloading ${k} from Open-Meteo… ${Math.round(f * 100)}%` + (msg ? ` – ${msg}` : ""));
-    if (o.atm) raw.atm = await fetchBatched(ATM[model].url, AV, G, o.hours, "&wind_speed_unit=kn", (f, m) => prog("weather", f, m));
-    if (o.marine) raw.mar = await fetchBatched(MARINE, MV, G, o.hours, "", (f, m) => prog("marine data", f, m));
+    const kinds = [o.atm && "weather", o.marine && "marine data (waves, currents)"].filter(Boolean), t0 = Date.now();
+    abort = false;
+    const prog = (ki, f, msg, done, total) => {
+      const all = (ki + f) / kinds.length;
+      if (quiet) { badge(Math.round(all * 100) + "%"); $("btnOpenMeteo").title = `Refreshing from Open-Meteo… ${Math.round(all * 100)}%` + (msg ? ` – ${msg}` : ""); return; }
+      const el = (Date.now() - t0) / 1000, left = all > 0.03 ? el * (1 - all) / all : null;
+      progShow({ title: `Downloading forecast – Open-Meteo ${ATM[model].label}`, step: `Part ${ki + 1} of ${kinds.length}: ${kinds[ki]}` + (total ? ` · ${done} of ${total} points` : ""),
+        pct: all, msg: msg || (left === null ? "starting…" : left < 50 ? "less than a minute left" : `about ${Math.ceil(left / 60)} min left`) });
+    };
+    let ki = 0;
+    if (o.atm) raw.atm = await fetchBatched(ATM[model].url, AV, G, o.hours, "&wind_speed_unit=kn", (f, m, d, t) => prog(ki, f, m, d, t));
+    if (o.atm) ki++;
+    if (o.marine) raw.mar = await fetchBatched(MARINE, MV, G, o.hours, "", (f, m, d, t) => prog(ki, f, m, d, t));
     return raw;
   }
+  // ---- progress card (above everything, with Cancel and "open last download")
+  const card = document.createElement("div"); card.className = "om-prog"; card.hidden = true;
+  card.innerHTML = `<div class="omp-head"><b id="ompTitle"></b><button class="btn-sm" id="ompCancel">Cancel</button></div>
+    <div class="omp-step" id="ompStep"></div><div class="omp-bar"><i id="ompBar"></i><span id="ompPct"></span></div>
+    <div class="omp-msg" id="ompMsg"></div><div class="omp-last" id="ompLast" hidden></div>`;
+  document.body.appendChild(card);
+  function progShow(p) {
+    card.hidden = false;
+    $("ompTitle").textContent = p.title; $("ompStep").textContent = p.step; $("ompMsg").textContent = p.msg;
+    $("ompBar").style.width = Math.round(p.pct * 100) + "%"; $("ompPct").textContent = Math.round(p.pct * 100) + " %";
+  }
+  function progHide() { card.hidden = true; }
+  $("ompCancel").onclick = () => { abort = true; $("ompMsg").textContent = "cancelling…"; };
+  async function progLast() {
+    const r = await lastRaw(), el = $("ompLast");
+    if (!r) { el.hidden = true; return; }
+    el.innerHTML = `Meanwhile: <button class="btn-sm" id="ompOpenLast">Open last download</button> <span class="muted">${A.esc(A.fmtZ(new Date(r.fetched)))} · ${A.esc((ATM[r.model] || ATM.gfs).label)}</span>`;
+    el.hidden = false;
+    $("ompOpenLast").onclick = async () => { const x = await lastRaw(); if (x) { try { show(x); } catch (e) { A.toast(A.esc(e.message), true, 5000); } } };
+  }
+  // start screen: offer the last download
+  async function emptyLast() {
+    const b = $("emptyLast"); if (!b) return;
+    const r = await lastRaw();
+    b.hidden = !r;
+    if (r) b.innerHTML = `Open last download <span class="muted">(${A.esc(A.fmtZ(new Date(r.fetched)))})</span>`;
+  }
+  if ($("emptyLast")) $("emptyLast").onclick = async () => { const r = await lastRaw(); if (r) { try { show(r); } catch (e) { A.toast(A.esc(e.message), true, 5000); } } };
+  emptyLast();
   const BTN_TITLE = "Download the latest forecast directly from Open-Meteo (internet needed)";
   function badge(t) { const b = $("omBadge"); if (!b) return; b.hidden = !t; b.textContent = t || ""; if (!t) $("btnOpenMeteo").title = BTN_TITLE; }
 
@@ -6333,19 +6702,20 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
     if (busy) return false;
     busy = true;
     let raw;
+    if (!quiet) { progShow({ title: "Downloading forecast – Open-Meteo", step: "connecting…", pct: 0, msg: "" }); progLast(); }
     try { raw = await download(o, quiet); }
-    catch (e) { console.error(e); A.loading(false); badge(""); busy = false; if (!quiet) A.toast(A.esc(e.message), true, 7000); else lastErr = e.message; return false; }
+    catch (e) { console.error(e); progHide(); badge(""); busy = false; if (!quiet) A.toast(A.esc(e.message), !/cancelled/.test(e.message), 7000); else lastErr = e.message; return false; }
     try {
       if (!quiet || stillOm()) show(raw, true);
       if (!quiet) show.toast(raw);
       else if (stillOm()) A.toast(`Forecast refreshed automatically – <b>${A.esc(ATM[raw.model].label)}</b>, downloaded ${A.fmtZ(new Date(raw.fetched))}`, false, 5000);
       await remember(raw); lastErr = ""; lastFetched = raw.fetched;
     } catch (e) { console.error(e); A.toast(A.esc(e.message), true, 7000); }
-    finally { A.loading(false); badge(""); busy = false; autoInfo(); }
+    finally { progHide(); badge(""); busy = false; autoInfo(); emptyLast(); }
     return true;
   }
   show.toast = (raw) => { const ds = A.S.ds; if (ds && ds.om) A.toast(`Loaded <b>${A.esc(ds.om.label)}</b> — ${ds.times.length} steps, ${raw.G.nx}×${raw.G.ny} points (${raw.G.res}°)`, false, 4500); };
-  $("omGo").onclick = async () => { if (await run(false)) close(); };
+  $("omGo").onclick = () => { close(); run(false); };     // the progress card shows on the map
   $("omLast").onclick = async () => { const r = await lastRaw(); if (r) { try { show(r); close(); } catch (e) { A.toast(A.esc(e.message), true, 5000); } } };
 
   // ---- automatic refresh: same area / model / length as the last download, every N hours while the page is open.
@@ -6719,6 +7089,354 @@ body.climo-mode .topbar { box-shadow: inset 0 -3px 0 #ffd166; }
   if (C() && C().hasData && C().hasData()) setTimeout(() => C().open().then(() => A.refreshDerived && A.refreshDerived()).catch(() => {}), 1500);
 
   window.VKTOps = { derive, augment, colorsFor, reqPlan, seriesVals, rowVals, worst, statusTxt, decoratePanels, wod, bestCourse, evalRow, anyLimit, shipOn, LEVEL };
+})();
+</script>
+<script>/* VKT Weather – sustained wind product (like Go / No-Go): for a time window (e.g. 0800–1230 IST) every grid point is
+ * SUSTAINED (wind inside the limits the whole time), MOSTLY (≥ 75 % of the time) or NO. Shown in the parameter list under
+ * Operations; clicking / tapping a position gives the wind range there and the ship's head for the chosen relative wind
+ * (Red 15 = wind 15° on the port bow → ship's head = wind direction + 15°). True wind from the loaded forecast.
+ */
+(function () {
+  "use strict";
+  const A = window.VKTAPI, $ = (id) => document.getElementById(id);
+  if (!A || !window.VKTOps) return;
+  const S = A.S;
+  const KEY = "vkt.sustain.v3", IST = 5.5 * 3600e3, RAD = Math.PI / 180, FID = "ops_sustain";
+  let st = load();
+  function load() {
+    let o = {}; try { o = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { /* ignore */ }
+    return Object.assign({ on: false, date: "", from: "0800", to: "1230", zone: "IST", min: 8, max: "", rel: "R15" }, o);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* ignore */ } }
+
+  const p2 = (n) => String(n).padStart(2, "0");
+  const hhmm = (ms, zone) => { const d = new Date(ms + (zone === "IST" ? IST : 0)); return p2(d.getUTCHours()) + p2(d.getUTCMinutes()); };
+  const n360 = (d) => ((d % 360) + 360) % 360;
+  const relName = (r) => (r === "A0" ? "wind ahead" : (r[0] === "R" ? "Red " : "Green ") + r.slice(1));
+  const relDeg = (r) => (r === "A0" ? 0 : (r[0] === "R" ? 1 : -1) * parseFloat(r.slice(1)));   // ship's head = wind-from + this
+  const dirFrom = (u, v) => n360(Math.atan2(-u, -v) / RAD);
+  const num = (v) => (v === "" || v === null || v === undefined || !isFinite(parseFloat(v)) ? NaN : parseFloat(v));
+  const lim = () => { const a = num(st.min), b = num(st.max); return isFinite(a) && isFinite(b) ? `${a}–${b} kt` : isFinite(a) ? `≥ ${a} kt` : `≤ ${b} kt`; };
+  const DAYN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MONN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayTxt = (ms, zone) => { const d = new Date(ms + (zone === "IST" ? IST : 0)); return `${DAYN[d.getUTCDay()]} ${p2(d.getUTCDate())} ${MONN[d.getUTCMonth()]}`; };
+  // e.g. "Tue 01 Sep 1430–1700 IST" (both dates when the window runs past midnight)
+  const win = (w) => { const z = st.zone === "IST" ? " IST" : "Z", d0 = dayTxt(w.t0, st.zone), d1 = dayTxt(w.t1, st.zone);
+    return d0 === d1 ? `${d0} ${hhmm(w.t0, st.zone)}–${hhmm(w.t1, st.zone)}${z}` : `${d0} ${hhmm(w.t0, st.zone)} – ${d1} ${hhmm(w.t1, st.zone)}${z}`; };
+
+  // time window from the settings; null if it is not inside the forecast
+  function windowOf(ds) {
+    const off = st.zone === "IST" ? IST : 0;
+    const P = (h) => { const s_ = String(h || "").replace(/\D/g, "").padStart(4, "0"); return Date.parse(`${st.date}T${s_.slice(0, 2)}:${s_.slice(2, 4)}:00Z`) - off; };
+    const t0 = P(st.from); let t1 = P(st.to);
+    if (!isFinite(t0) || !isFinite(t1)) return { err: "Check the date and the From / To times (HHMM)" };
+    if (t1 <= t0) t1 += 864e5;
+    const ts = ds.times;
+    if (t0 < +ts[0] - 60e3 || t1 > +ts[ts.length - 1] + 60e3) return { err: `The forecast covers ${A.fmtIST(new Date(+ts[0]))} – ${A.fmtIST(new Date(+ts[ts.length - 1]))} only` };
+    const hours = (t1 - t0) / 3600e3, dt0 = hours > 24 ? 2 : hours > 12 ? 1 : 0.5, K = Math.max(1, Math.round(hours / dt0));
+    return { t0, t1, times: Array.from({ length: K + 1 }, (_, k) => t0 + (k * (t1 - t0)) / K) };
+  }
+  // wind components at any time (linear between forecast steps)
+  function windAt(ds, f, tms) {
+    const ts = ds.times, n = ts.length;
+    let i = 0; while (i < n - 2 && +ts[i + 1] <= tms) i++;
+    const j = Math.min(i + 1, n - 1), a = +ts[i], b = +ts[j], w = b > a ? Math.min(1, Math.max(0, (tms - a) / (b - a))) : 0;
+    const U0 = f.comps.u.get(ts[i]), V0 = f.comps.v.get(ts[i]), U1 = f.comps.u.get(ts[j]), V1 = f.comps.v.get(ts[j]);
+    if (!U0 || !V0) return null;
+    if (!U1 || !V1 || w === 0) return { u: U0, v: V0 };
+    const u = new Float32Array(U0.length), v = new Float32Array(U0.length);
+    for (let k = 0; k < u.length; k++) { u[k] = U0[k] * (1 - w) + U1[k] * w; v[k] = V0[k] * (1 - w) + V1[k] * w; }
+    return { u, v };
+  }
+
+  // share of the window with the wind inside the limits (%), graded greens; contours 50 / 75 / 90 / 100 %
+  // only the 100 % area: no shading, a dotted line around it
+  const SCALE = { levels: [99.5, 100.5], colors: ["rgba(0,0,0,0)"], names: ["Inside the dotted line: wind inside the limits 100 % of the time"], contours: [50], fixed: true };
+  // the same picture at every time step
+  // sea points only: land polygons rasterised onto the forecast grid
+  function landMask(G) {
+    const rings = A.landRings ? A.landRings() : [];
+    if (!rings.length || typeof document === "undefined") return null;
+    const nx = G.nx, ny = G.ny, dLat = (G.lat_n - G.lat_s) / (ny - 1), dLon = (G.lon_e - G.lon_w) / (nx - 1);
+    const c = document.createElement("canvas"); c.width = nx; c.height = ny;
+    const g = c.getContext("2d"); g.fillStyle = "#000";
+    for (const sh of [-360, 0, 360]) {
+      g.beginPath();
+      for (const r of rings) {
+        r.forEach(([la, lo], i) => { const x = (lo + sh - G.lon_w) / dLon + 0.5, y = (G.lat_n - la) / dLat + 0.5; if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+        g.closePath();
+      }
+      g.fill("nonzero");
+    }
+    const d = g.getImageData(0, 0, nx, ny).data, m = new Uint8Array(nx * ny);
+    for (let k = 0; k < m.length; k++) m[k] = d[k * 4 + 3] > 127 ? 1 : 0;
+    return m;
+  }
+  class Static {
+    constructor(times, fn) { this.t = times; this.s = new Set(times); this.fn = fn; this.v = null; }
+    get(t) { if (!this.s.has(t)) return undefined; if (!this.v) this.v = this.fn(); return this.v; }
+    has(t) { return this.s.has(t); } keys() { return this.t[Symbol.iterator](); } get size() { return this.t.length; }
+    *values() { for (const t of this.t) yield this.get(t); } *entries() { for (const t of this.t) yield [t, this.get(t)]; } [Symbol.iterator]() { return this.entries(); }
+  }
+
+  function addField(ds) {
+    if (!ds || ds.climo || !st.on) return;
+    const f = ds.fields.find((x) => x.id === "wind");
+    if (!f || f.kind !== "vector") return;
+    const w = windowOf(ds); if (w.err) return;
+    const G = f.grid, np = G.nx * G.ny, min = num(st.min), max = num(st.max), rel = relDeg(st.rel);
+    const okW = (ws) => isFinite(ws) && (!isFinite(min) || ws >= min) && (!isFinite(max) || ws <= max);
+    let winds = null;
+    const getWinds = () => (winds = winds || w.times.map((t) => windAt(ds, f, t)));
+    const stats = { lo: new Float32Array(np), hi: new Float32Array(np) };
+    const build = () => {
+      const W = getWinds(), out = new Float32Array(np).fill(NaN), land = landMask(G);
+      for (let k = 0; k < np; k++) {
+        if (land && land[k]) continue;
+        let n = 0, ok = 0, lo = Infinity, hi = -Infinity;
+        for (const x of W) { if (!x) continue; const ws = Math.hypot(x.u[k], x.v[k]); if (!isFinite(ws)) continue; n++; if (okW(ws)) ok++; lo = Math.min(lo, ws); hi = Math.max(hi, ws); }
+        if (!n) continue;
+        out[k] = (100 * ok) / n;
+        stats.lo[k] = lo; stats.hi[k] = hi;
+      }
+      raw = out;
+      // contour field: 100 % area = 1, else 0, blurred twice for smooth curves; 100 % points stay inside the 50 line
+      const nx = G.nx, ny = G.ny;
+      let cur = new Float32Array(np);
+      for (let k = 0; k < np; k++) cur[k] = isFinite(out[k]) ? (out[k] === 100 ? 100 : 0) : NaN;
+      for (let pass = 0; pass < 2; pass++) {
+        const nxt = new Float32Array(np).fill(NaN);
+        for (let i = 0; i < ny; i++) for (let j = 0; j < nx; j++) {
+          const k = i * nx + j; if (!isFinite(cur[k])) continue;
+          let sw = 0, sv = 0;
+          for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+            const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= ny || jj >= nx) continue;
+            const v = cur[ii * nx + jj]; if (!isFinite(v)) continue;
+            const wt = (di ? 1 : 2) * (dj ? 1 : 2); sw += wt; sv += wt * v;
+          }
+          nxt[k] = sv / sw;
+        }
+        cur = nxt;
+      }
+      for (let k = 0; k < np; k++) if (isFinite(cur[k])) cur[k] = out[k] === 100 ? Math.max(cur[k], 58) : Math.min(cur[k], 42);
+      return cur;
+    };
+    let raw = null;
+    // only the forecast steps inside the window (or the one nearest its middle if none falls inside)
+    let inWin = ds.times.filter((t) => +t >= w.t0 - 60e3 && +t <= w.t1 + 60e3);
+    if (!inWin.length) { const mid = (w.t0 + w.t1) / 2; inWin = [ds.times.reduce((a, t) => (Math.abs(+t - mid) < Math.abs(+a - mid) ? t : a))]; }
+    const comp = new Static(inWin, build);
+    ds.fields.push({
+      noShade: true, seaOnly: true, ovCat: "ocean", contourLabel: () => "100%", contourDash: [0.1, 6], contourColor: "#d32f2f", contourSmooth: true,
+      id: FID, kind: "scalar", grid: G, file: "derived", times: ds.times, min: 0, max: 3, derived: true, noEdit: true, limits: true,
+      title: `Sustained wind ${lim()} · ${win(w)}`, units: "", winTimes: inWin,
+      noDataTxt: `Sustained wind is for ${win(w)} – step to that time`, group: "Operations", scale: SCALE, comps: { val: comp },
+      readout: (lat, lon, t) => {
+        if (!comp.has(t)) return `outside ${win(w)}`;
+        const arr = comp.get(t), [fx, fy] = A.toIJ(G, lat, lon), i = Math.round(fy), j = Math.round(fx);
+        if (i < 0 || j < 0 || i >= G.ny || j >= G.nx || !isFinite(arr[i * G.nx + j])) return "land – sea areas only";
+        const pc = raw ? raw[i * G.nx + j] : arr[i * G.nx + j], cls = pc >= 99.5 ? "SUSTAINED (100 % of the time)" : `inside limits ${Math.round(pc)} % of the time`;
+        const heads = [], ws = [];
+        for (const x of getWinds()) { if (!x) continue; const u = A.sample(x.u, G, fx, fy, true), v = A.sample(x.v, G, fx, fy, true); if (!isFinite(u)) continue; ws.push(Math.hypot(u, v)); heads.push(n360(dirFrom(u, v) + rel)); }
+        if (!ws.length) return "no data";
+        const lo = Math.round(Math.min(...ws)), hi = Math.round(Math.max(...ws));
+        let hTxt;
+        const h0 = heads[0], spread = heads.map((h) => ((h - h0 + 540) % 360) - 180), a = Math.min(...spread), b = Math.max(...spread);
+        hTxt = b - a <= 6 ? A.fmtDir(n360(h0 + (a + b) / 2)) : `${A.fmtDir(n360(h0 + a))}–${A.fmtDir(n360(h0 + b))}`;
+        return `${cls} – wind ${lo === hi ? lo : lo + "–" + hi} kt ${win(w)} · ship's head ${hTxt} (${relName(st.rel)})`;
+      },
+    });
+  }
+  // ride along with the other Operations products (Go / No-Go …): added whenever they are rebuilt
+  const baseDerive = window.VKTOps.derive;
+  window.VKTOps.derive = (ds) => { baseDerive(ds); try { addField(ds); } catch (e) { console.warn(e); } };
+
+  // ---------- dialog
+  function fill() {
+    if (!st.date && S.ds) { const t = A.curTime() || new Date(); st.date = new Date(+t + (st.zone === "IST" ? IST : 0)).toISOString().slice(0, 10); }
+    $("suOn").checked = !!st.on; $("suDate").value = st.date; $("suFrom").value = st.from; $("suTo").value = st.to; $("suZone").value = st.zone;
+    $("suMin").value = st.min; $("suMax").value = st.max; $("suRel").value = st.rel; status();
+  }
+  function status(msg) {
+    let t = msg || "";
+    if (!t && S.ds && st.on) { const w = windowOf(S.ds); t = w.err ? `<span class="warn-txt">${A.esc(w.err)}</span>` : `On the map: parameter list → <b>Operations → Sustained wind</b>. Click / tap a position for the wind there and the ship's head.`; }
+    $("suOut").innerHTML = t;
+  }
+  function open() { st = load(); fill(); $("susModal").hidden = false; }
+  function close() { $("susModal").hidden = true; }
+  $("btnSustain").onclick = open;
+  $("suClose").onclick = close;
+  $("susModal").addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") close(); });
+  function read() {
+    st.on = $("suOn").checked; st.date = $("suDate").value; st.from = $("suFrom").value.trim(); st.to = $("suTo").value.trim(); st.zone = $("suZone").value;
+    st.min = $("suMin").value; st.max = $("suMax").value; st.rel = $("suRel").value; save();
+  }
+  function apply(show) {
+    read();
+    if (st.on && !isFinite(num(st.min)) && !isFinite(num(st.max))) return status(`<span class="warn-txt">Give the minimum and / or maximum wind</span>`);
+    if (!S.ds) return status(st.on ? "Saved – shown when a forecast is loaded." : "");
+    if (st.on) { const w = windowOf(S.ds); if (w.err) return status(`<span class="warn-txt">${A.esc(w.err)}</span>`); }
+    if (show && st.on) S.field = FID;
+    A.refreshDerived();
+    // go to the first forecast step of the window
+    const fm = show && st.on && A.fieldMeta(FID);
+    if (fm && fm.winTimes && !fm.winTimes.some((t) => +t === +A.curTime())) A.setT(S.ds.times.findIndex((t) => +t === +fm.winTimes[0]));
+    status();
+    if (show && st.on) close();
+  }
+  ["suDate", "suFrom", "suTo", "suZone", "suMin", "suMax", "suRel"].forEach((id) => $(id).addEventListener("change", () => apply(false)));
+  $("suOn").addEventListener("change", () => apply(false));
+  $("suGo").onclick = () => { $("suOn").checked = true; apply(true); };
+  // choosing the product in the parameter list jumps to the first forecast step of its window (if not already inside)
+  document.addEventListener("vkt:legend", (e) => {
+    const fm = e.detail && e.detail.fm;
+    if (!fm || fm.id !== FID || !fm.winTimes || !S.ds) return;
+    const cur = +A.curTime();
+    if (fm.winTimes.some((t) => +t === cur)) return;
+    const i = S.ds.times.findIndex((t) => +t === +fm.winTimes[0]);
+    if (i >= 0) setTimeout(() => A.setT(i), 0);
+  });
+  window.VKTSustain = { open, apply, settings: () => st };
+})();
+</script>
+<script>/* VKT Weather – phone layout helpers.
+ * The PC layout is unchanged; on narrow screens (≤ 760 px) the CSS turns the side panel into a bottom sheet, dialogs into
+ * full-screen pages and the top bar into icons. This file adds what CSS cannot: the "More" menu, the mini legend on the map,
+ * closing the sheet after a choice, and the backdrop.
+ */
+(function () {
+  "use strict";
+  const A = window.VKTAPI, $ = (id) => document.getElementById(id);
+  if (!A) return;
+  const mq = window.matchMedia("(max-width: 760px), (max-height: 500px) and (pointer: coarse)");
+  const phone = () => mq.matches;
+  const panel = $("panel"), body = document.body;
+  const standalone = window.navigator.standalone === true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  if (standalone) body.classList.add("standalone");
+
+  // ---------- backdrop + sheet header for the side panel
+  const scrim = document.createElement("div"); scrim.className = "mob-scrim"; scrim.hidden = true; document.body.appendChild(scrim);
+  const head = document.createElement("div"); head.className = "sheet-head mob-only";
+  head.innerHTML = `<span class="grab"></span><b>Parameters, layers &amp; areas</b><button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>`;
+  panel.insertBefore(head, panel.firstChild);
+  const closePanel = () => { panel.classList.add("hidden"); sync(); };
+  head.querySelector("button").onclick = closePanel;
+  function sync() {
+    const open = phone() && !panel.classList.contains("hidden");
+    scrim.hidden = !(open || !more.hidden);
+    body.classList.toggle("sheet-open", open);
+  }
+  new MutationObserver(sync).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  scrim.onclick = () => { if (!more.hidden) closeMore(); if (phone()) closePanel(); };
+  // choosing a parameter closes the sheet so the map is visible again
+  $("fieldList").addEventListener("click", (e) => { if (phone() && e.target.closest(".field-btn")) setTimeout(closePanel, 120); });
+  // swipe the sheet down to close it
+  let y0 = null;
+  head.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; }, { passive: true });
+  head.addEventListener("touchmove", (e) => { if (y0 !== null && e.touches[0].clientY - y0 > 60) { y0 = null; closePanel(); } }, { passive: true });
+  head.addEventListener("touchend", () => { y0 = null; }, { passive: true });
+
+  // ---------- "More" menu (everything that does not fit in the top bar)
+  const more = document.createElement("div"); more.className = "mob-more"; more.hidden = true;
+  const ICON = {
+    open: '<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    dl: '<path d="M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2"/>',
+    cal: '<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    img: '<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 15l3-3 2 2 3-4 3 5" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    dir: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/>',
+    go: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    route: '<path d="M3 16l3 4h12l3-4zM12 3v11M12 4l6 8h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.5" fill="currentColor"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  };
+  const ITEMS = [
+    ["btnOpen", "open", "Open GRIB file", "A file saved on this phone / PC"],
+    ["btnOpenMeteo", "dl", "Download forecast", "Open-Meteo · GFS / ECMWF / ICON + waves · auto-refresh"],
+    ["btnSaildocs", "mail", "Saildocs request", "GRIB by e-mail (works on ship e-mail)"],
+    ["btnClimo", "cal", "Climatology", "Normal weather for any period (ERA5)"],
+    ["btnOps", "go", "Go / No-Go limits", "Wind below / above your limits"],
+    ["btnRouteFc", "route", "Ops / route forecast", "Positions or areas with their own times"],
+    ["btnSustain", "route", "Sustained wind (flying ops)", "Map of where the wind stays within limits"],
+    ["btnAddCoords", "pin", "Add area by coordinates", ""],
+    ["btnExport", "img", "Export map image", "PNG / animation for briefings"],
+    ["btnWatch", "dir", "Watch folder", "Loads the newest GRIB by itself (PC, Chrome / Edge)"],
+    ["@panel", "layers", "Parameters, layers & areas", "Legend, overlays, saved areas"],
+  ];
+  more.innerHTML = `<div class="sheet-head"><span class="grab"></span><b>VKT Weather</b><button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+    <div class="mm-run" id="mmRun"></div>
+    <div class="mm-list">${ITEMS.map(([id, ic, t, sub]) => `<button class="mm-item" data-id="${id}"><svg viewBox="0 0 24 24" width="22" height="22">${ICON[ic]}</svg><span><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</span></button>`).join("")}</div>
+    <div class="mm-note" id="mmNote"></div>`;
+  document.body.appendChild(more);
+  function openMore() {
+    $("mmRun").innerHTML = $("runInfo").innerHTML;
+    more.querySelectorAll(".mm-item").forEach((b) => { const t = $(b.dataset.id); b.disabled = !!(t && t.disabled); });
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), web = location.protocol === "https:";
+    $("mmNote").innerHTML = standalone ? "" : web
+      ? (ios ? "Install: tap <b>Share</b> <span class='ic'>⬆︎</span> → <b>Add to Home Screen</b>. It then opens like an app and works offline."
+             : "Install: browser menu <b>⋮</b> → <b>Install app</b> / <b>Add to Home screen</b>. It then opens like an app and works offline.")
+      : "";
+    more.hidden = false; sync();
+  }
+  function closeMore() { more.hidden = true; sync(); }
+  $("btnMore").onclick = () => (more.hidden ? openMore() : closeMore());
+  more.querySelector(".sheet-head button").onclick = closeMore;
+  more.addEventListener("click", (e) => {
+    const b = e.target.closest(".mm-item"); if (!b) return;
+    closeMore();
+    if (b.dataset.id === "@panel") { panel.classList.remove("hidden"); sync(); return; }
+    const t = $(b.dataset.id);
+    if (!t) return;
+    if (["btnOps", "btnRouteFc", "btnAddCoords", "btnSustain"].includes(b.dataset.id) && phone()) closePanel();
+    t.click();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !more.hidden) closeMore(); });
+
+  // ---------- mini legend on the map (phones: the full legend is in the sheet)
+  const mini = document.createElement("div"); mini.className = "mini-legend mob-only"; mini.hidden = true;
+  document.querySelector(".map-wrap").appendChild(mini);
+  mini.onclick = () => { panel.classList.remove("hidden"); sync(); setTimeout(() => { const l = $("legend"); if (l) l.scrollIntoView({ block: "center" }); }, 50); };
+  const tn = (v) => (Math.abs(v) >= 100 ? Math.round(v) : +v.toFixed(Math.abs(v) < 1 ? 2 : 1)).toString();
+  document.addEventListener("vkt:legend", (e) => {
+    const { fm, sc, title } = e.detail || {};
+    if (!fm || !sc || !sc.colors) { mini.hidden = true; return; }
+    if (fm.noShade) { mini.innerHTML = `<div class="ml-t">${A.esc(title)}</div><div class="ml-ticks" style="height:auto"><span style="position:static;transform:none;white-space:normal">┈┈ dotted line = within limits 100 % of the time</span></div>`; mini.hidden = false; return; }
+    const cols = sc.colors, lev = sc.levels, n = cols.length;
+    const bar = cols.map((c) => `<i style="background:${c}"></i>`).join("");
+    let ticks;
+    if (sc.names) ticks = [0, Math.floor(n / 2), n - 1].map((i) => `<span style="left:${((i + 0.5) / n) * 100}%">${A.esc(String(sc.names[i]).split(/[ (]/)[0])}</span>`).join("");
+    else {
+      const step = Math.max(1, Math.round(n / 5)), out = [];
+      for (let i = 0; i < n; i += step) out.push(`<span style="left:${(i / n) * 100}%">${tn(lev[i])}</span>`);
+      ticks = out.join("");
+    }
+    mini.innerHTML = `<div class="ml-t">${A.esc(title)}</div><div class="ml-bar">${bar}</div><div class="ml-ticks">${ticks}</div>`;
+    mini.hidden = false;
+  });
+  // the measure box uses the same place at the top of the map
+  new MutationObserver(() => body.classList.toggle("measuring", !$("measureBox").hidden)).observe($("measureBox"), { attributes: true, attributeFilter: ["hidden"] });
+
+  // ---------- swipe left / right on the time label to step through the forecast
+  const tl = document.querySelector(".time-label");
+  if (tl) {
+    let x0 = null;
+    tl.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    tl.addEventListener("touchend", (e) => {
+      if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 35) $(dx < 0 ? "btnNext" : "btnPrev").click();
+    }, { passive: true });
+  }
+
+  // ---------- start screen: direct download (the easiest way on a phone)
+  const ed = $("emptyDownload"); if (ed) ed.onclick = () => $("btnOpenMeteo").click();
+  // an open area popup needs the top of the map
+  A.map.on("popupopen", () => body.classList.add("popup-open"));
+  A.map.on("popupclose", () => body.classList.remove("popup-open"));
+
+  // ---------- keep things consistent when the phone rotates / window is resized
+  const onChange = () => { if (!phone()) { scrim.hidden = true; body.classList.remove("sheet-open"); if (!more.hidden) closeMore(); } else sync(); setTimeout(() => A.map.invalidateSize(), 60); };
+  if (mq.addEventListener) mq.addEventListener("change", onChange); else if (mq.addListener) mq.addListener(onChange);
+  window.addEventListener("orientationchange", () => setTimeout(() => A.map.invalidateSize(), 300));
+  sync();
 })();
 </script>
 </body>
