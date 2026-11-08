@@ -3836,6 +3836,10 @@ body { height: 100%; height: 100dvh; }
   }
   $("fileInput").addEventListener("change", (e) => { const g = splitClimo(e.target.files); if (g.length) { stopWatching(); loadFiles(fromFileObjects(g)); } e.target.value = ""; });
   ["btnOpen", "emptyOpen"].forEach((id) => $(id).addEventListener("click", () => $("fileInput").click()));
+  // iPhone / iPad: Safari greys out files whose type it does not know (.grb, .grib2, .bin) when "accept" is set,
+  // so allow any file there – the file is checked when it is read
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isIOS) ["fileInput", "clFile"].forEach((id) => { const el = $(id); if (el) el.removeAttribute("accept"); });
   let dragDepth = 0;
   window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; $("dropHint").hidden = false; });
   window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("dropHint").hidden = true; } });
