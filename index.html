@@ -1355,7 +1355,7 @@ body { height: 100%; height: 100dvh; }
   <div class="spacer"></div>
   <select id="fileSelect" title="File in the watched folder" hidden></select>
   <div class="live" id="watchStatus" hidden title="">
-    <span class="dot"></span><span class="txt" id="watchTxt">Watching</span>&nbsp;<b id="watchName"></b>
+    <span class="dot"></span><span class="txt" id="watchTxt">Folder</span>&nbsp;<b id="watchName"></b>
     <button class="icon-btn" id="btnRefresh" title="Check folder now" aria-label="Check folder now">
       <svg viewBox="0 0 24 24" width="16" height="16"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -1379,7 +1379,7 @@ body { height: 100%; height: 100dvh; }
     <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 15l3-3 2 2 3-4 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
     <span class="lbl">Export image</span>
   </button>
-  <button class="btn" id="btnWatch" title="Pick a folder; the newest GRIB in it is loaded and re-checked every 30 s">
+  <button class="btn" id="btnWatch" title="Pick a folder; the newest GRIB in it is loaded. Press ⟳ to load a newer one (no automatic re-loading)">
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <span class="lbl">Watch folder</span>
   </button>
@@ -1466,7 +1466,7 @@ body { height: 100%; height: 100dvh; }
           <button class="btn" id="emptyWatch">Watch a folder (auto-load latest)…</button>
           <button class="btn warn" id="emptyReconnect" hidden>Reconnect to <b id="emptyReconnectName"></b></button>
         </div>
-        <div class="note" id="watchNote">Tip: pick your <b>pyprojects\input</b> folder. The page checks it every 30 s and loads new files by itself. Files named <b>cur*.grb</b> are added as ocean currents / SST.</div>
+        <div class="note" id="watchNote">Tip: pick your <b>pyprojects\input</b> folder. The newest GRIB in it is loaded; when a newer one is saved the page offers it (or press ⟳). Files named <b>cur*.grb</b> are added as ocean currents / SST.</div>
       </div>
     </div>
 
@@ -1610,7 +1610,7 @@ body { height: 100%; height: 100dvh; }
       <label class="sd-tl"><span>Request – sent to <b>query@saildocs.com</b> (you can edit it)</span><textarea id="sdText" rows="3" spellcheck="false"></textarea></label>
       <div class="muted sd-size" id="sdSize"></div>
       <div class="cl-actions"><button class="btn primary" id="sdSend">Open in e-mail program</button><button class="btn" id="sdGmail">Open in Gmail</button><button class="btn" id="sdCopy">Copy request</button></div>
-      <div class="muted sd-help">Saildocs replies by e-mail within minutes with one GRIB attachment per line. Save the attachments into the <b>watched folder</b> (e.g. <i>pyprojects\input</i>): the newest file is loaded automatically, and files that arrive within an hour of it (e.g. GFS + wave model) are combined; RTOFS files are added as currents / sea temperature. Times are UTC hours from the latest model run. Works from any e-mail account, including ship / satellite e-mail.</div>
+      <div class="muted sd-help">Saildocs replies by e-mail within minutes with one GRIB attachment per line. Save the attachments into the <b>watched folder</b> (e.g. <i>pyprojects\input</i>): press ⟳ (or return to the page and click <b>Load</b>) to show the newest file; files that arrive within an hour of it (e.g. GFS + wave model) are combined; RTOFS files are added as currents / sea temperature. Times are UTC hours from the latest model run. Works from any e-mail account, including ship / satellite e-mail.</div>
     </div>
   </div>
 </div>
@@ -3893,24 +3893,31 @@ body { height: 100%; height: 100dvh; }
     $("watchStatus").hidden = false;
     $("watchName").textContent = handle.name;
     await checkFolder(true);
-    clearInterval(S.watchTimer);
-    S.watchTimer = setInterval(() => checkFolder(false), 30000);
+    // no timed re-scan: the folder is checked again only when you come back to this page or press the refresh button
+    clearInterval(S.watchTimer); S.watchTimer = null;
   }
+  let lastFocusCheck = 0;
+  const focusCheck = () => { if (!S.dir || document.visibilityState === "hidden" || Date.now() - lastFocusCheck < 5000) return; lastFocusCheck = Date.now(); checkFolder(false); };
+  document.addEventListener("visibilitychange", focusCheck);
+  window.addEventListener("focus", focusCheck);
   function stopWatching() {
     clearInterval(S.watchTimer); S.watchTimer = null; S.dir = null; S.dirFiles = [];
     $("watchStatus").hidden = true; fillFileSelect();
   }
-  async function checkFolder(first) {
+  // first = folder just picked / reconnected; manual = refresh button or a file chosen in the list.
+  // A check on returning to the page never replaces what is on screen: a newer file is only offered ("Load").
+  let offered = "";
+  async function checkFolder(first, manual) {
     if (!S.dir) return;
     let files;
     try { files = await scanFolder(); }
     catch (e) { $("watchStatus").className = "live off"; $("watchTxt").textContent = "Folder unavailable"; return; }
     S.dirFiles = files;
-    $("watchStatus").className = "live"; $("watchTxt").textContent = "Watching";
-    $("watchStatus").title = `Checking folder "${S.dir.name}" every 30 s · last check ${fmtLocal(Date.now())}`;
+    $("watchStatus").className = "live"; $("watchTxt").textContent = "Folder";
+    $("watchStatus").title = `Folder "${S.dir.name}" · checked when you return to this page or press ⟳ (no automatic re-loading) · last check ${fmtLocal(Date.now())}`;
     fillFileSelect();
     if (!files.length) {
-      if (first) { $("empty").hidden = false; toast(`No GRIB files in folder <b>${esc(S.dir.name)}</b> yet — waiting for one…`, true, 8000); }
+      if (first) { $("empty").hidden = false; toast(`No GRIB files in folder <b>${esc(S.dir.name)}</b> yet — press ⟳ when one is saved`, true, 8000); }
       return;
     }
     let want;
@@ -3920,16 +3927,25 @@ body { height: 100%; height: 100dvh; }
       if (mains[0] && curs[0]) want.push(curs[0]);
     } else {
       const f = files.find((x) => x.name === S.dirMode);
-      if (!f) { S.dirMode = "latest"; return checkFolder(first); }
+      if (!f) { S.dirMode = "latest"; return checkFolder(first, manual); }
       want = [f];
       const c = files.find((x) => CUR_RE.test(x.name));
       if (c && c !== f) want.push(c);
     }
     const sig = (arr) => arr.map((f) => f.name + "@" + f.mtime).sort().join("|");
-    if (sig(want) === sig(S.loaded)) return;
-    const wasLoaded = S.loaded.length > 0;
+    const fromFolder = !!(S.loaded && S.loaded.fromFolder);
+    if (fromFolder && sig(want) === sig(S.loaded)) return;          // already showing it
+    if (!first && !manual) {                                        // returning to the page: just offer the newer file
+      const s_ = sig(want);
+      if (s_ === offered) return;
+      offered = s_;
+      toast(`${fromFolder ? "Newer" : "Latest"} GRIB in folder <b>${esc(S.dir.name)}</b>: ${esc(want[0].name)} <button class="btn-sm" id="tLoadDir">Load</button>`, false, 15000);
+      const b = $("tLoadDir"); if (b) b.onclick = () => { $("toast").hidden = true; checkFolder(false, true); };
+      return;
+    }
     await loadFiles(want);
-    if (wasLoaded && !first && S.dirMode === "latest") toast(`New forecast loaded: <b>${esc(want[0].name)}</b> — run ${fmtZ(S.ds.run, false)}`);
+    if (S.loaded) S.loaded.fromFolder = true;
+    offered = sig(want);
   }
   function fillFileSelect() {
     const sel = $("fileSelect");
@@ -3943,8 +3959,8 @@ body { height: 100%; height: 100dvh; }
     S.dirFiles.forEach((f) => { const op = document.createElement("option"); op.value = f.name; op.textContent = `${f.name} · ${fmtLocal(f.mtime)}`; sel.appendChild(op); });
     sel.value = S.dirMode;
   }
-  $("fileSelect").addEventListener("change", (e) => { S.dirMode = e.target.value; checkFolder(false); });
-  $("btnRefresh").addEventListener("click", () => checkFolder(false));
+  $("fileSelect").addEventListener("change", (e) => { S.dirMode = e.target.value; checkFolder(false, true); });
+  $("btnRefresh").addEventListener("click", () => checkFolder(false, true));
 
   // ------------------------------------------------------------------ URL hash (view sharing / bookmarks)
   function saveHash() {
